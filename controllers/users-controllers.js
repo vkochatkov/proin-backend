@@ -20,9 +20,6 @@ const getUsers = async (req, res, next) => {
 };
 
 const signup = async (req, res, next) => {
-  // const resBody = res.json({requestBody: req.body})
-  // console.log(resBody, 'body')
-  console.log(req.body, 'req')
   const errors = validationResult(req);
   
   if (!errors.isEmpty()) {
