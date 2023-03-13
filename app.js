@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 
 const usersRoutes = require('./routes/users-routes');
+const projectsRoutes = require('./routes/projects-routes');
 const HttpError = require('./models/http-error');
 
 const app = express();
@@ -24,6 +25,7 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use('/projects', projectsRoutes);
 app.use('/users', usersRoutes);
 
 app.use((req, res, next) => {
