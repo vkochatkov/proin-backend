@@ -2,6 +2,7 @@ const fs = require('fs');
 
 const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
+
 const HttpError = require('../models/http-error');
 
 const Project = require('../models/project');
@@ -46,12 +47,6 @@ const getProjectsByUserId = async (req, res, next) => {
     return next(error);
   }
 
-  if (!userWithProjects || userWithProjects.projects.length === 0) {
-    return next(
-      new HttpError('Could not find projects for the provided user id.', 404)
-    );
-  }
-
   res.json({
     projects: userWithProjects.projects.map(project =>
       project.toObject({ getters: true })
@@ -60,19 +55,7 @@ const getProjectsByUserId = async (req, res, next) => {
 };
 
 const createProject = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return next(
-      new HttpError('Invalid inputs passed, please check your data.', 422)
-    );
-  }
-
-  const { projectName, description } = req.body;
-
   const createdProject = new Project({
-    projectName,
-    description,
-    logoUrl: req.file ? req.file.path : '',
     creator: req.userData.userId
   });
 
@@ -111,17 +94,11 @@ const createProject = async (req, res, next) => {
 };
 
 const updateProject = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return next(
-      new HttpError('Invalid inputs passed, please check your data.', 422)
-    );
-  }
-
   const { projectName, description } = req.body;
   const projectId = req.params.pid;
 
   let project;
+
   try {
     project = await Project.findById(projectId);
   } catch (err) {
@@ -137,8 +114,17 @@ const updateProject = async (req, res, next) => {
     return next(error);
   }
 
-  project.projectName = projectName;
-  project.description = description;
+  if (req.file && req.file.path) {
+    project.logoUrl = req.file.path;
+  }
+
+  if (projectName) {
+    project.projectName = projectName;
+  }
+
+  if (description) {
+    project.description = description;
+  }
 
   try {
     await project.save();
