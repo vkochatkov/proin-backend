@@ -1,0 +1,8 @@
+{
+  "env": {
+    "DB_USER": "kochatkov",
+    "DB_PASSWORD": "Cm949894",
+    "DB_NAME": "pro-in",
+    "JWT_KEY": "supersecret_dont_share"
+  }
+}

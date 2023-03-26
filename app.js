@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const url = `mongodb+srv://kochatkov:Cm949894@cluster0.wpxhvxd.mongodb.net/pro-in?retryWrites=true&w=majority`
+const url = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.wpxhvxd.mongodb.net/${process.env.DB_NAME}?retryWrites=true&w=majority`
 
 const express = require('express');
 const bodyParser = require('body-parser');
