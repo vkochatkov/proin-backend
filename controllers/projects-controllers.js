@@ -7,7 +7,7 @@ const Project = require('../models/project');
 const User = require('../models/user');
 const AWS = require('aws-sdk');
 
-require('dotenv').config()
+require('dotenv').config();
 
 const bucketName = process.env.AWS_BUCKET_NAME;
 const region = process.env.AWS_BUCKET_REGION;
@@ -141,7 +141,7 @@ const updateProject = async (req, res, next) => {
   const params = {
     Bucket: bucketName,
     Key: `${req.file.originalname}`,
-    Expires: 900
+    Expires: 5900
   };
 
   if (req.file && req.file.path) {
