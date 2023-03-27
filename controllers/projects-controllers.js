@@ -1,12 +1,36 @@
 const fs = require('fs');
 
 const mongoose = require('mongoose');
-const { validationResult } = require('express-validator');
-
 const HttpError = require('../models/http-error');
 
 const Project = require('../models/project');
 const User = require('../models/user');
+const AWS = require('aws-sdk');
+
+require('dotenv').config()
+
+const bucketName = process.env.AWS_BUCKET_NAME;
+const region = process.env.AWS_BUCKET_REGION;
+const accessKeyId = process.env.AWS_ACCESS_KEY;
+const secretAccessKey = process.env.AWS_SECRET_KEY;
+
+const s3 = new AWS.S3({
+  region, 
+  accessKeyId,
+  secretAccessKey,
+  acl: 'public-read'
+});
+
+const uploadFile = (file) => {
+  const fileStream = fs.createReadStream(file.path);
+  const uploadParams = {
+    Bucket: bucketName, 
+    Body: fileStream,
+    Key: file.originalname,
+  }
+
+  return s3.upload(uploadParams).promise();
+}
 
 const getProjectById = async (req, res, next) => {
   const projectId = req.params.pid;
@@ -114,8 +138,19 @@ const updateProject = async (req, res, next) => {
     return next(error);
   }
 
+  const params = {
+    Bucket: bucketName,
+    Key: `${req.file.originalname}`,
+    Expires: 900
+  };
+
   if (req.file && req.file.path) {
-    project.logoUrl = req.file.path;
+    const { Location } = await uploadFile(req.file);
+
+    if (Location) {
+      const presignuedUrl = s3.getSignedUrl('getObject', params);
+      project.logoUrl = presignuedUrl;
+    }
   }
 
   if (projectName) {
