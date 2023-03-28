@@ -138,16 +138,16 @@ const updateProject = async (req, res, next) => {
     return next(error);
   }
 
-  const params = {
-    Bucket: bucketName,
-    Key: `${req.file.originalname}`,
-    Expires: 5900
-  };
-
   if (req.file && req.file.path) {
     const { Location } = await uploadFile(req.file);
 
     if (Location) {
+      const params = {
+        Bucket: bucketName,
+        Key: `${req.file.originalname}`,
+        Expires: 5900
+      };
+      
       const presignuedUrl = s3.getSignedUrl('getObject', params);
       project.logoUrl = presignuedUrl;
     }
