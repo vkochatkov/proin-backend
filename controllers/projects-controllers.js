@@ -18,7 +18,6 @@ const s3 = new AWS.S3({
   region, 
   accessKeyId,
   secretAccessKey,
-  acl: 'public-read'
 });
 
 const uploadFile = (file) => {
@@ -26,7 +25,8 @@ const uploadFile = (file) => {
   const uploadParams = {
     Bucket: bucketName, 
     Body: fileStream,
-    Key: file.originalname,
+    Key: `images/${file.originalname}`,
+    ACL: 'public-read'
   }
 
   return s3.upload(uploadParams).promise();
@@ -142,14 +142,7 @@ const updateProject = async (req, res, next) => {
     const { Location } = await uploadFile(req.file);
 
     if (Location) {
-      const params = {
-        Bucket: bucketName,
-        Key: `${req.file.originalname}`,
-        Expires: 5900
-      };
-      
-      const presignuedUrl = s3.getSignedUrl('getObject', params);
-      project.logoUrl = presignuedUrl;
+      project.logoUrl = Location;
     }
   }
 
