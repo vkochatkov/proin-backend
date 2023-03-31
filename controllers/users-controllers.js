@@ -73,7 +73,6 @@ const signup = async (req, res, next) => {
       'Signing up failed, please try again later.',
       500
     );
-    console.log(err)
     return next(error);
   }
 

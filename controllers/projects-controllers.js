@@ -194,8 +194,6 @@ const deleteProject = async (req, res, next) => {
     return next(error);
   }
 
-  const logoPath = project.logoUrl;
-
   try {
     const sess = await mongoose.startSession();
     sess.startTransaction();
@@ -211,9 +209,13 @@ const deleteProject = async (req, res, next) => {
     return next(error);
   }
 
-  fs.unlink(logoPath, err => {
-    console.log(err);
-  });
+  const logoPath = project.logoUrl;
+
+  if (logoPath) {
+    fs.unlink(logoPath, err => {
+      console.log(err);
+    });
+  }
 
   res.status(200).json({ message: 'Deleted project.' });
 };
