@@ -32,6 +32,27 @@ const uploadFile = (file) => {
   return s3.upload(uploadParams).promise();
 }
 
+const findeUser = async (userId) => {
+  let user;
+
+  try {
+    user = await User.findById(userId);
+  } catch (err) {
+    const error = new HttpError(
+      'Creating project failed, please try again.',
+      500
+    );
+    return next(error);
+  }
+
+  if (!user) {
+    const error = new HttpError('Could not find author for provided id.', 404);
+    return next(error);
+  }
+
+  return user;
+}
+
 const getProjectById = async (req, res, next) => {
   const projectId = req.params.pid;
 
@@ -78,26 +99,40 @@ const getProjectsByUserId = async (req, res, next) => {
   });
 };
 
+const updateProjectsByUserId = async (req, res, next) => {
+  const userId = req.params.uid;
+  const updatedProjects = req.body.projects;
+
+  try {
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+
+    // Retrieve the user object from the database and update the project order
+    const user = await User.findById(userId).session(sess);
+    user.projects = updatedProjects;
+
+    // Save the updated user object and commit the transaction
+    await user.save({ session: sess });
+    await sess.commitTransaction();
+
+    res.status(200).json({ message: 'Project order updated successfully.' });
+  } catch (err) {
+    const error = new HttpError(
+      'Updating project order failed, please try again.',
+      500
+    );
+    return next(error);
+  }
+}
+
 const createProject = async (req, res, next) => {
   const createdProject = new Project({
     creator: req.userData.userId
   });
 
   let user;
-  try {
-    user = await User.findById(req.userData.userId);
-  } catch (err) {
-    const error = new HttpError(
-      'Creating project failed, please try again.',
-      500
-    );
-    return next(error);
-  }
 
-  if (!user) {
-    const error = new HttpError('Could not find author for provided id.', 404);
-    return next(error);
-  }
+  user = await findeUser(req.userData.userId);
 
   try {
     const sess = await mongoose.startSession();
@@ -222,6 +257,7 @@ const deleteProject = async (req, res, next) => {
 
 exports.getProjectById = getProjectById;
 exports.getProjectsByUserId = getProjectsByUserId;
+exports.updateProjectsByUserId = updateProjectsByUserId;
 exports.createProject = createProject;
 exports.updateProject = updateProject;
 exports.deleteProject = deleteProject;

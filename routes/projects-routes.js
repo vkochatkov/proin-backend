@@ -10,6 +10,8 @@ router.get('/:pid', projectControllers.getProjectById);
 
 router.get('/user/:uid', projectControllers.getProjectsByUserId);
 
+router.put('/user/:uid', projectControllers.updateProjectsByUserId);
+
 router.use(checkAuth);
 
 router.post(
