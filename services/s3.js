@@ -1,5 +1,6 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const uuid = require('uuid/v1');
+const logger = require('./logger');
 
 require('dotenv').config();
 
@@ -20,7 +21,8 @@ const uploadFile = async (dataBase64, projectId) => {
     const generatedName = uuid();
     const filename = `${generatedName}.jpg`;
     const path = `images/${projectId}/${filename}`;
-  
+
+    logger.info('uploadFile func is going well. next step is client.send request, 25 line');
     const response = await client.send(
       new PutObjectCommand({
         Bucket: bucketName,
@@ -33,13 +35,16 @@ const uploadFile = async (dataBase64, projectId) => {
     );
   
     const isUploaded = response['$metadata'].httpStatusCode === 200;
+    logger.info(`uploadFile, 38 line, isUploaded value: ${isUploaded}`)
     const url =  isUploaded ? `${host}/${path}` : null;
-  
+    
+    logger.info(`uploadFile, 41 line, url value: ${url}`)
     return {
       isUploaded,
       url
     }
   } catch (e) {
+    logger.info(`"PATCH" request failed, message: ${e.message}. something wrong with the request to s3`)
     console.log(e);
   }
 }

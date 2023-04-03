@@ -4,6 +4,7 @@ const HttpError = require('../models/http-error');
 const Project = require('../models/project');
 const User = require('../models/user');
 const { uploadFile, deleteFile } = require('../services/s3');
+const logger = require('../services/logger');
 
 require('dotenv').config();
 
@@ -128,6 +129,7 @@ const createProject = async (req, res, next) => {
 };
 
 const updateProject = async (req, res, next) => {
+  logger.info('"PATCH" request to "https://pro-in.herokuapp.com/projects/:uid"')
   const { projectName, description, logoUrl } = req.body;
   const projectId = req.params.pid;
   let project;
@@ -135,6 +137,7 @@ const updateProject = async (req, res, next) => {
   try {
     project = await Project.findById(projectId);
   } catch (err) {
+    logger.info(`project has not found, message: ${err}`)
     const error = new HttpError(
       'Something went wrong, could not update project.',
       500
@@ -148,7 +151,9 @@ const updateProject = async (req, res, next) => {
   }
 
   if (logoUrl) {
+    logger.info(`all is goung well - 154 line. Next - await uploadFile(logoUrl, projectId);`)
     const { isUploaded, url } = await uploadFile(logoUrl, projectId);
+    logger.info(`uploadFile is successfull, 200`)
 
     if (isUploaded) {
       project.logoUrl = url;
@@ -224,6 +229,8 @@ const deleteProject = async (req, res, next) => {
     try {
       await deleteFile(logoUrl);
     } catch (e) {
+      logger.info(`"DELETE" request failed, message: ${e.message}. 232 line`)
+
       const error = new HttpError(
         e.message,
         500
