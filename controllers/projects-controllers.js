@@ -124,21 +124,24 @@ const createProject = async (req, res, next) => {
     );
     return next(error);
   }
-
+  
+  logger.info(`createdProject Id: ${createdProject.id}`)
   res.status(201).json({ project: createdProject });
 };
 
 const updateProject = async (req, res, next) => {
   logger.info(`"PATCH" request to "https://pro-in.herokuapp.com/projects/:uid" body: ${req.body}`)
   const { projectName, description, logoUrl } = req.body;
-  logger.info(`projectName: ${projectName}, description: ${description}, logoUrl: ${logoUrl}`)
+  logger.info(`projectName: ${projectName}, description: ${description}, logoUrl: ${Boolean(logoUrl)}`)
   const projectId = req.params.pid;
   logger.info(`project id: ${projectId}`)
   let project;
 
   try {
+    const doesProjectExit = await Project.exists({ _id: projectId });
+    logger.info(`is project exist: ${doesProjectExit}`)
     project = await Project.findById(projectId);
-    logger.info(`project was found with id: ${id}`)
+    logger.info(`project was found with id: ${projectId}`)
   } catch (err) {
     logger.info(`project has not found, message: ${err}`)
     const error = new HttpError(
@@ -154,7 +157,7 @@ const updateProject = async (req, res, next) => {
   }
 
   if (logoUrl) {
-    logger.info(`all is goung well - 154 line. Next - await uploadFile(logoUrl, projectId);`)
+    logger.info(`all is goung well. Next func- await uploadFile(logoUrl, projectId);`)
     const { isUploaded, url } = await uploadFile(logoUrl, projectId);
     logger.info(`uploadFile is successfull, 200`)
 
