@@ -129,13 +129,15 @@ const createProject = async (req, res, next) => {
 };
 
 const updateProject = async (req, res, next) => {
-  logger.info('"PATCH" request to "https://pro-in.herokuapp.com/projects/:uid"')
+  logger.info(`"PATCH" request to "https://pro-in.herokuapp.com/projects/:uid" body: ${req.body}`)
   const { projectName, description, logoUrl } = req.body;
+  logger.info(`projectName: ${projectName}, description: ${description}, logoUrl: ${logoUrl}`)
   const projectId = req.params.pid;
   let project;
 
   try {
     project = await Project.findById(projectId);
+    logger.info(`project was found with id: ${id}`)
   } catch (err) {
     logger.info(`project has not found, message: ${err}`)
     const error = new HttpError(
