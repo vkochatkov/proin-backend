@@ -133,6 +133,7 @@ const updateProject = async (req, res, next) => {
   const { projectName, description, logoUrl } = req.body;
   logger.info(`projectName: ${projectName}, description: ${description}, logoUrl: ${logoUrl}`)
   const projectId = req.params.pid;
+  logger.info(`project id: ${projectId}`)
   let project;
 
   try {
