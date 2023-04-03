@@ -1,36 +1,11 @@
-const fs = require('fs');
-
 const mongoose = require('mongoose');
 const HttpError = require('../models/http-error');
 
 const Project = require('../models/project');
 const User = require('../models/user');
-const AWS = require('aws-sdk');
+const { uploadFile, deleteFile } = require('../services/s3');
 
 require('dotenv').config();
-
-const bucketName = process.env.AWS_BUCKET_NAME;
-const region = process.env.AWS_REGION;
-const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
-
-const s3 = new AWS.S3({
-  region, 
-  accessKeyId,
-  secretAccessKey,
-});
-
-const uploadFile = (file) => {
-  const fileStream = fs.createReadStream(file.path);
-  const uploadParams = {
-    Bucket: bucketName, 
-    Body: fileStream,
-    Key: `images/${file.originalname}`,
-    ACL: 'public-read'
-  }
-
-  return s3.upload(uploadParams).promise();
-}
 
 const findeUser = async (userId) => {
   let user;
@@ -153,9 +128,8 @@ const createProject = async (req, res, next) => {
 };
 
 const updateProject = async (req, res, next) => {
-  const { projectName, description } = req.body;
+  const { projectName, description, logoUrl } = req.body;
   const projectId = req.params.pid;
-
   let project;
 
   try {
@@ -173,11 +147,11 @@ const updateProject = async (req, res, next) => {
     return next(error);
   }
 
-  if (req.file && req.file.path) {
-    const { Location } = await uploadFile(req.file);
+  if (logoUrl) {
+    const { isUploaded, url } = await uploadFile(logoUrl, projectId);
 
-    if (Location) {
-      project.logoUrl = Location;
+    if (isUploaded) {
+      project.logoUrl = url;
     }
   }
 
@@ -244,12 +218,18 @@ const deleteProject = async (req, res, next) => {
     return next(error);
   }
 
-  const logoPath = project.logoUrl;
+  const logoUrl = project.logoUrl;
 
-  if (logoPath) {
-    fs.unlink(logoPath, err => {
-      console.log(err);
-    });
+  if (logoUrl) {
+    try {
+      await deleteFile(logoUrl);
+    } catch (e) {
+      const error = new HttpError(
+        e.message,
+        500
+      )
+      return next(error);
+    }
   }
 
   res.status(200).json({ message: 'Deleted project.' });

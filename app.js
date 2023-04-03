@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 require('dotenv').config();
 const cors = require('cors');
 
@@ -15,8 +14,7 @@ const HttpError = require('./models/http-error');
 
 const app = express();
 
-app.use(bodyParser.json());
-app.use('/uploads/images', express.static(path.join('uploads', 'images')));
+app.use(bodyParser.json({ limit: '100mb' }));
 
 const corsOptions = {
   "origin": "*",
@@ -24,9 +22,9 @@ const corsOptions = {
     "preflightContinue": false,
     "optionsSuccessStatus": 200,
     "exposedHeaders": ['Content-Length', 'X-Requested-With', ' Authorization','Content-Type'],
-  }
+}
   
-  app.use(cors(corsOptions))
+app.use(cors(corsOptions))
 
 app.use('/projects', projectsRoutes);
 app.use('/users', usersRoutes);
