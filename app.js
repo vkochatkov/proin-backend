@@ -15,6 +15,7 @@ const HttpError = require('./models/http-error');
 const app = express();
 
 app.use(bodyParser.json({ limit: '100mb' }));
+app.use(bodyParser.urlencoded({extended: true}));
 
 const corsOptions = {
   "origin": "*",

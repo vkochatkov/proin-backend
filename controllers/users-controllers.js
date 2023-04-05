@@ -1,9 +1,11 @@
 const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const logger = require('../services/logger')
 
 const HttpError = require('../models/http-error');
 const User = require('../models/user');
+const mailer = require('../nodemailer.');
 require('dotenv').config();
 
 const getUsers = async (req, res, next) => {
@@ -30,6 +32,22 @@ const signup = async (req, res, next) => {
   }
 
   const { email, password } = req.body;
+  logger.info(`POST signin up request started with credentials email: ${email}, password: ${password}`)
+
+  const message = {
+    to: email,
+    subject: 'Congratulations! You are successfully registered on our site',
+    text: `Вітаємо! Ви успішно зареєструвалися на нашому сайті
+    
+      Дані Вашого облікового запису:
+      login: ${email}
+      password: ${password}
+
+      Даний лист не потребує відповіді
+    `
+  };
+
+  mailer(message);
   
   let existingUser;
   try {
@@ -96,18 +114,19 @@ const signup = async (req, res, next) => {
     .json({ 
       userId: createdUser.id, 
       email: createdUser.email, 
-      token: token 
+      token 
     });
 };
 
 const login = async (req, res, next) => {
   const { email, password } = req.body;
-  console.log(email, password)
+  logger.info(`POST login request was successfull with email: ${email}, password: ${password}`);
   let existingUser;
 
   try {
     existingUser = await User.findOne({ email: email });
   } catch (err) {
+    logger.info(`${err} status 500`)
     const error = new HttpError(
       'Logging in failed, please try again later.',
       500
@@ -120,6 +139,7 @@ const login = async (req, res, next) => {
       'Invalid credentials, could not log you in.',
       403
     );
+    logger.info(error)
     return next(error);
   }
 
@@ -160,10 +180,152 @@ const login = async (req, res, next) => {
   res.json({
     userId: existingUser.id,
     email: existingUser.email,
-    token: token
+    token
   });
 };
+
+const forgotPassword = async (req, res, next) => {
+  logger.info(`POST request to reset password is successfull `)
+  const { email } = req.body;
+  let existingUser;
+
+  try {
+    existingUser = await User.findOne({ email: email });
+  } catch (err) {
+    logger.info(`існуючого користувача email:${email} не вдалося знайти, щось пішло не так, статус 500`)
+    const error = new HttpError(
+      'Logging in failed, please try again later.',
+      500
+    );
+    return next(error);
+  }
+
+  if (!existingUser) {
+    logger.info(`існуючого користувача email:${email} не вдалося знайти, статус 403`)
+    const error = new HttpError(
+      'Invalid credentials, could not log you in.',
+      403
+    );
+    return next(error);
+  }
+
+  let token;
+  try {
+    token = jwt.sign(
+      { userId: existingUser.id, email: existingUser.email },
+      process.env.JWT_KEY,
+      { expiresIn: '1h' }
+    );
+  } catch (err) {
+    const error = new HttpError(
+      'Logging in failed, please try again later.',
+      500
+    );
+    return next(error);
+  }
+
+  const message = {
+    to: email,
+    subject: 'Відновлення паролю',
+    html: `
+    <div>
+      <p>
+        Натисни <a href="${process.env.FRONTEND_HOST}/reset-password/${token}">посилання</a> 
+        щоб оновити пароль.
+      </p>
+      <p>
+        Даний лист не потребує відповіді
+      </p>
+    </div>
+    `
+  };
+
+  mailer(message);
+
+  res.json('reset email message was sent successfully');
+}
+
+const resetPassword = async(req, res, next) => {
+  const { token, password } = req.body;
+  logger.info(`POST request resetPassword with token: ${token} password: ${password}`)
+
+  let decodedToken;
+  try {
+    decodedToken = jwt.verify(token, process.env.JWT_KEY);
+  } catch (err) {
+    const error = new HttpError(
+      'Invalid or expired token, please try again.',
+      400
+    );
+    return next(error);
+  }
+
+  let existingUser;
+  try {
+    existingUser = await User.findById(decodedToken.userId);
+  } catch (err) {
+    const error = new HttpError(
+      'Resetting password failed, please try again later.',
+      500
+    );
+    return next(error);
+  }
+
+  if (!existingUser) {
+    const error = new HttpError(
+      'Could not find a user with the provided token.',
+      404
+    );
+    return next(error);
+  }
+
+  let hashedPassword;
+  try {
+    hashedPassword = await bcrypt.hash(password, 12);
+  } catch (err) {
+    const error = new HttpError(
+      'Could not update password, please try again.',
+      500
+    );
+    return next(error);
+  }
+
+  existingUser.password = hashedPassword;
+
+  try {
+    await existingUser.save();
+  } catch (err) {
+    const error = new HttpError(
+      'Resetting password failed, please try again later.',
+      500
+    );
+    return next(error);
+  }
+
+  let newToken;
+  try {
+    newToken = jwt.sign(
+      { userId: existingUser.id, email: existingUser.email },
+      process.env.JWT_KEY,
+      { expiresIn: '1h' }
+    );
+  } catch (err) {
+    const error = new HttpError(
+      'Resetting password failed, please try again later.',
+      500
+    );
+    return next(error);
+  }
+
+  res.json({
+    userId: existingUser.id,
+    email: existingUser.email,
+    token: newToken
+  });
+}
 
 exports.getUsers = getUsers;
 exports.signup = signup;
 exports.login = login;
+exports.forgotPassword = forgotPassword;
+exports.resetPassword = resetPassword;
