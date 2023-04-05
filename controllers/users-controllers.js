@@ -185,8 +185,8 @@ const login = async (req, res, next) => {
 };
 
 const forgotPassword = async (req, res, next) => {
-  logger.info(`POST request to reset password is successfull `)
   const { email } = req.body;
+  logger.info(`POST request to reset password is successfull width email:${email}`)
   let existingUser;
 
   try {
