@@ -33,21 +33,6 @@ const signup = async (req, res, next) => {
 
   const { email, password } = req.body;
   logger.info(`POST signin up request started with credentials email: ${email}, password: ${password}`)
-
-  const message = {
-    to: email,
-    subject: 'Congratulations! You are successfully registered on our site',
-    text: `Вітаємо! Ви успішно зареєструвалися на нашому сайті
-    
-      Дані Вашого облікового запису:
-      login: ${email}
-      password: ${password}
-
-      Даний лист не потребує відповіді
-    `
-  };
-
-  mailer(message);
   
   let existingUser;
   try {
@@ -108,6 +93,21 @@ const signup = async (req, res, next) => {
     );
     return next(error);
   }
+
+  const message = {
+    to: email,
+    subject: 'Вітаємо! Ви успішно зареєструвалися на нашому сайті',
+    text: `Вітаємо! Ви успішно зареєструвалися на нашому сайті
+    
+      Дані Вашого облікового запису:
+      login: ${email}
+      password: ${password}
+
+      Даний лист не потребує відповіді
+    `
+  };
+
+  mailer(message);
 
   res
     .status(201)
