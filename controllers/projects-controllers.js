@@ -8,7 +8,7 @@ const logger = require('../services/logger');
 
 require('dotenv').config();
 
-const findeUser = async (userId) => {
+const findUser = async (userId) => {
   let user;
 
   try {
@@ -27,6 +27,23 @@ const findeUser = async (userId) => {
   }
 
   return user;
+}
+
+const findProject = async (projectId) => {
+  let project;
+
+  try {
+    project = await Project.findById(projectId).populate('comments');
+  } catch (err) {
+    logger.info(`project has not found, message: ${err}`)
+    const error = new HttpError(
+      'Something went wrong, could not update project.',
+      500
+    );
+    return next(error);
+  }
+
+  return project;
 }
 
 const getProjectById = async (req, res, next) => {
@@ -59,7 +76,10 @@ const getProjectsByUserId = async (req, res, next) => {
 
   let userWithProjects;
   try {
-    userWithProjects = await User.findById(userId).populate('projects');
+    userWithProjects = await User.findById(userId).populate({
+      path: 'projects',
+      populate: { path: 'comments' } 
+    });
   } catch (err) {
     const error = new HttpError(
       'Fetching projects failed, please try again later.',
@@ -108,7 +128,7 @@ const createProject = async (req, res, next) => {
 
   let user;
 
-  user = await findeUser(req.userData.userId);
+  user = await findUser(req.userData.userId);
 
   try {
     const sess = await mongoose.startSession();
@@ -130,21 +150,11 @@ const createProject = async (req, res, next) => {
 };
 
 const updateProject = async (req, res, next) => {
-  logger.info(`"PATCH" request to "https://pro-in.herokuapp.com/projects/:uid" body: ${req.body}`)
+  logger.info(`"PATCH" request to "https://pro-in.herokuapp.coпиm/projects/:uid" `)
   const { projectName, description, logoUrl } = req.body;
   const projectId = req.params.pid;
-  let project;
 
-  try {
-    project = await Project.findById(projectId);
-  } catch (err) {
-    logger.info(`project has not found, message: ${err}`)
-    const error = new HttpError(
-      'Something went wrong, could not update project.',
-      500
-    );
-    return next(error);
-  }
+  const project = await findProject(projectId);
 
   if (project.creator.toString() !== req.userData.userId) {
     const error = new HttpError('You are not allowed to edit this project.', 401);

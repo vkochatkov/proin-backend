@@ -11,6 +11,7 @@ const mongoose = require('mongoose');
 
 const usersRoutes = require('./routes/users-routes');
 const projectsRoutes = require('./routes/projects-routes');
+const commentsRoutes = require('./routes/comments-routes');
 const HttpError = require('./models/http-error');
 
 const app = express();
@@ -29,6 +30,7 @@ const corsOptions = {
 app.use(cors(corsOptions))
 
 app.use('/projects', projectsRoutes);
+app.use('/projects', commentsRoutes);
 app.use('/users', usersRoutes);
 
 app.use((req, res, next) => {
