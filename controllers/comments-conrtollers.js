@@ -61,7 +61,47 @@ const createProjectComment = async (req, res, next) => {
 }
 
 const updateProjectComments = async(req, res, next) => {
+  const projectId = req.params.pid;
+  const { id, text, timestamp, name } = req.body;
 
+
+  let project;
+  try {
+    project = await findProject(projectId);
+  } catch (err) {
+    logger.error(`PATCH. updateProjectComments/  Error finding project: ${err.message}`);
+    const error = new HttpError('Something went wrong, could not update comment.', 500);
+    return next(error);
+  }
+
+  if (project.creator.toString() !== req.userData.userId) {
+    logger.error(`PATCH. User does not allow to edit comments. Error: ${err.message}`);
+    const error = new HttpError('You are not allowed to edit this project.', 401);
+    return next(error);
+  }
+
+  const commentIndex = project.comments.findIndex(comment => comment.id === id);
+  if (commentIndex === -1) {
+    logger.error(`PATCH. updateProjectComments/ Could not find comment with the provided id. Error: ${err.message}`);
+    const error = new HttpError('Could not find comment with the provided id.', 404);
+    return next(error);
+  }
+
+  const comment = project.comments[commentIndex];
+  comment.text = text;
+  comment.timestamp = timestamp;
+  comment.name = name;
+
+  try {
+    await comment.save();
+    await project.save();
+  } catch (err) {
+    logger.error(`Error updating comment: ${err.message}`);
+    const error = new HttpError('Something went wrong, could not update comment.', 500);
+    return next(error);
+  }
+
+  res.status(200).json({comments: project.comments});
 }
 
 const deleteComment = async(req, res, next) => {
