@@ -7,7 +7,12 @@ const projectSchema = new Schema({
   description: { type: String },
   logoUrl: { type: String },
   comments: [{ type: mongoose.Types.ObjectId, ref: 'Comment' }],
-  creator: { type: mongoose.Types.ObjectId, required: true, ref: 'User' }
+  creator: { type: mongoose.Types.ObjectId, required: true, ref: 'User' },
+  invitations: [{
+    invitationId: String,
+    email: String
+  }],
+  sharedWith: [{ type: mongoose.Types.ObjectId, ref: 'User' }]
 });
 
 module.exports = mongoose.model('Project', projectSchema);

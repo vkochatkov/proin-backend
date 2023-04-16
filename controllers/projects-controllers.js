@@ -1,10 +1,13 @@
 const mongoose = require('mongoose');
 const HttpError = require('../models/http-error');
+const uuid = require('uuid/v1');
 
 const Project = require('../models/project');
 const User = require('../models/user');
+const ProjectMember = require('../models/project-member');
 const { uploadFile, deleteFile } = require('../services/s3');
 const logger = require('../services/logger');
+const mailer = require('../nodemailer');
 
 require('dotenv').config();
 
@@ -74,12 +77,17 @@ const getProjectById = async (req, res, next) => {
 const getProjectsByUserId = async (req, res, next) => {
   const userId = req.params.uid;
 
-  let userWithProjects;
+  let projects;
   try {
-    userWithProjects = await User.findById(userId).populate({
-      path: 'projects',
-      populate: { path: 'comments' } 
+    const creatorProjects = await Project.find({ creator: userId }).populate({
+      path: 'comments',
     });
+
+    const memberProjects = await Project.find({ sharedWith: userId }).populate({
+      path: 'comments',
+    });
+
+    projects = [...creatorProjects, ...memberProjects];
   } catch (err) {
     const error = new HttpError(
       'Fetching projects failed, please try again later.',
@@ -89,7 +97,7 @@ const getProjectsByUserId = async (req, res, next) => {
   }
 
   res.json({
-    projects: userWithProjects.projects.map(project =>
+    projects: projects.map(project =>
       project.toObject({ getters: true })
     )
   });
@@ -134,10 +142,21 @@ const createProject = async (req, res, next) => {
     const sess = await mongoose.startSession();
     sess.startTransaction();
     await createdProject.save({ session: sess });
+  
+    const creatorMember = new ProjectMember({
+      projectId: createdProject.id,
+      userId: user.id,
+      role: 'admin',
+      status: 'active'
+    });
+
+    await creatorMember.save({ session: sess });
+
     user.projects.push(createdProject);
     await user.save({ session: sess });
     await sess.commitTransaction();
   } catch (err) {
+    logger.info('after close dbtransition error', err);
     const error = new HttpError(
       'Creating project failed, please try again.',
       500
@@ -145,21 +164,15 @@ const createProject = async (req, res, next) => {
     return next(error);
   }
   
-  logger.info(`createdProject Id: ${createdProject.id}`)
   res.status(201).json({ project: createdProject });
 };
 
 const updateProject = async (req, res, next) => {
-  logger.info(`"PATCH" request to "https://pro-in.herokuapp.coпиm/projects/:uid" `)
+  logger.info(`"PATCH" update project request to "${req.protocol}://${req.get('host')}/projects/:uid" `)
   const { projectName, description, logoUrl } = req.body;
   const projectId = req.params.pid;
 
   const project = await findProject(projectId);
-
-  if (project.creator.toString() !== req.userData.userId) {
-    const error = new HttpError('You are not allowed to edit this project.', 401);
-    return next(error);
-  }
 
   if (logoUrl) {
     const { isUploaded, url } = await uploadFile(logoUrl, projectId);
@@ -251,9 +264,127 @@ const deleteProject = async (req, res, next) => {
   res.status(200).json({ message: 'Deleted project.' });
 };
 
+const sendInvitation = async (req, res, next) => {
+  const projectId = req.params.pid;
+  const { email } = req.body;
+
+  // Find the user with the provided email in your database
+  try {
+    const userToInvite = await User.findOne({ email });
+    if (!userToInvite) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+  
+    const invitationId = uuid();
+  
+    const project = await Project.findById(projectId);
+    project.invitations.push({
+      invitationId,
+      email,
+    });
+
+     // Add the user to the ProjectMember collection as a member
+     const projectMember = new ProjectMember({
+      projectId,
+      userId: userToInvite.id,
+      role: 'admin',
+      status: 'pending'
+    });
+
+    await projectMember.save();
+    await project.save();
+  
+    const invitationLink = `${process.env.FRONTEND_HOST}/projects/${projectId}/invitations/${invitationId}`;
+    // const invitationLink = `http://localhost:5000/projects/${projectId}/invitations/${invitationId}`;
+  
+    const message = {
+      to: email,
+      subject: 'Запрошення до проекту',
+      html: `
+      <div>
+        <p>
+          Натисни <a href="${invitationLink}">посилання</a> 
+          щоб прийняти зарпошення.
+        </p>
+        <p>
+          Даний лист не потребує відповіді
+        </p>
+      </div>
+      `
+    };
+  
+    mailer(message);
+  } catch (e) {
+    const error = new HttpError('the error happen while sending access invitation', 500);
+    logger.info(`sendInvitation ${e.message}`)
+
+    return next(error);
+  }
+
+  return res.status(200).json({ message: 'Invitation sent' });
+};
+
+const joinToProject = async (req, res, next) => {
+  const { pid, invitationId } = req.params;
+  const currentUserId = req.userData.userId; // The authenticated user who is joining the project
+
+  try {
+    const isMemberAlreadyAdded = Boolean(await ProjectMember.findOne({
+      projectId: pid, userId: currentUserId, status: 'active'
+    }));
+
+    if (isMemberAlreadyAdded) {
+      const error = new HttpError('Користувач вже доданий', 500);
+      logger.info(`joinToProject ${error}`)
+      return next(error);
+    }
+
+    const project = await Project.findOne({
+      _id: pid,
+      'invitations.invitationId': invitationId,
+    });
+
+    if (!project) {
+      const error = new HttpError('Invalid invitation', 404);
+      logger.info(`joinToProject ${error}`)
+      return next(error);
+    }
+  
+    // Add the user to the sharedWith array in the project
+    project.sharedWith.push(currentUserId);
+    // Remove the invitation from the project
+    project.invitations = project.invitations.filter(invitation => invitation.invitationId !== invitationId);
+    await project.save();
+  
+     // Update the ProjectMember record to 'active'
+     const projectMember = await ProjectMember.findOneAndUpdate(
+      { projectId: pid, userId: currentUserId, status: 'pending' },
+      { $set: { status: 'active' } },
+      { new: true }
+    );
+
+    if (!projectMember) {
+      return res.status(400).json({ message: 'User is not invited to join this project' });
+    }
+  
+    await projectMember.save();
+  } catch (e) {
+    const error = new HttpError(
+      `something went wrong: ${e.message}`,
+      500
+    );
+
+    return next(error);
+  } 
+
+  return res.status(200).json({ message: 'Joined project' });
+};
+
 exports.getProjectById = getProjectById;
 exports.getProjectsByUserId = getProjectsByUserId;
 exports.updateProjectsByUserId = updateProjectsByUserId;
 exports.createProject = createProject;
 exports.updateProject = updateProject;
 exports.deleteProject = deleteProject;
+exports.sendInvitation = sendInvitation;
+exports.joinToProject = joinToProject;

@@ -5,7 +5,7 @@ const logger = require('../services/logger')
 
 const HttpError = require('../models/http-error');
 const User = require('../models/user');
-const mailer = require('../nodemailer.');
+const mailer = require('../nodemailer');
 require('dotenv').config();
 
 const getUsers = async (req, res, next) => {
@@ -84,7 +84,7 @@ const signup = async (req, res, next) => {
     token = jwt.sign(
       { userId: createdUser.id, email: createdUser.email },
       process.env.JWT_KEY,
-      { expiresIn: '1h' }
+      { expiresIn: process.env.EXPIRES_IN }
     );
   } catch (err) {
     const error = new HttpError(
@@ -167,7 +167,7 @@ const login = async (req, res, next) => {
     token = jwt.sign(
       { userId: existingUser.id, email: existingUser.email },
       process.env.JWT_KEY,
-      { expiresIn: '1h' }
+      { expiresIn: process.env.EXPIRES_IN }
     );
   } catch (err) {
     const error = new HttpError(
@@ -186,7 +186,6 @@ const login = async (req, res, next) => {
 
 const forgotPassword = async (req, res, next) => {
   const { email } = req.body;
-  logger.info(`POST request to reset password is successfull width email:${email}`)
   let existingUser;
 
   try {
@@ -214,7 +213,7 @@ const forgotPassword = async (req, res, next) => {
     token = jwt.sign(
       { userId: existingUser.id, email: existingUser.email },
       process.env.JWT_KEY,
-      { expiresIn: '1h' }
+      { expiresIn: process.env.EXPIRES_IN }
     );
   } catch (err) {
     const error = new HttpError(
@@ -307,7 +306,7 @@ const resetPassword = async(req, res, next) => {
     newToken = jwt.sign(
       { userId: existingUser.id, email: existingUser.email },
       process.env.JWT_KEY,
-      { expiresIn: '1h' }
+      { expiresIn: process.env.EXPIRES_IN }
     );
   } catch (err) {
     const error = new HttpError(

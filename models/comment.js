@@ -7,7 +7,8 @@ const commentSchema = new Schema({
   text: { type: String },
   timestamp: { type: String },
   name: { type: String },
-  projectId: { type: mongoose.Types.ObjectId, required: true, ref: 'Project' }
+  projectId: { type: mongoose.Types.ObjectId, required: true, ref: 'Project' },
+  userId: { type: mongoose.Types.ObjectId }
 });
 
 module.exports = mongoose.model('Comment', commentSchema);

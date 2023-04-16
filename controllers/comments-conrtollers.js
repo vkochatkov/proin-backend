@@ -3,7 +3,6 @@ const HttpError = require('../models/http-error');
 const Comment = require('../models/comment');
 
 const Project = require('../models/project');
-const User = require('../models/user');
 const logger = require('../services/logger');
 
 require('dotenv').config();
@@ -27,21 +26,17 @@ const findProject = async (projectId) => {
 
 const createProjectComment = async (req, res, next) => {
   const projectId = req.params.pid;
-  const { id, text, timestamp, name } = req.body;
+  const { id, text, timestamp, name, userId } = req.body;
   
   const project = await findProject(projectId);
-
-  if (project.creator.toString() !== req.userData.userId) {
-    const error = new HttpError('You are not allowed to edit this project.', 401);
-    return next(error);
-  }
 
   const comment = new Comment({
     id,
     text,
     timestamp,
     name,
-    projectId
+    projectId,
+    userId
   })
 
   let updatedProject;
@@ -64,26 +59,19 @@ const updateProjectComments = async(req, res, next) => {
   const projectId = req.params.pid;
   const { id, text, timestamp, name } = req.body;
 
-
   let project;
   try {
     project = await findProject(projectId);
   } catch (err) {
-    logger.error(`PATCH. updateProjectComments/  Error finding project: ${err.message}`);
+    logger.error(`PATCH. updateProjectComments/  Error finding project: ${err}`);
     const error = new HttpError('Something went wrong, could not update comment.', 500);
     return next(error);
-  }
-
-  if (project.creator.toString() !== req.userData.userId) {
-    logger.error(`PATCH. User does not allow to edit comments. Error: ${err.message}`);
-    const error = new HttpError('You are not allowed to edit this project.', 401);
-    return next(error);
-  }
+  };
 
   const commentIndex = project.comments.findIndex(comment => comment.id === id);
   if (commentIndex === -1) {
-    logger.error(`PATCH. updateProjectComments/ Could not find comment with the provided id. Error: ${err.message}`);
     const error = new HttpError('Could not find comment with the provided id.', 404);
+    logger.error(`PATCH. updateProjectComments/ Could not find comment with the provided id. Error: ${error}`);
     return next(error);
   }
 
@@ -115,13 +103,6 @@ const deleteComment = async(req, res, next) => {
 
     if (!comment) {
       const error = new HttpError('Comment not found.', 404);
-      logger.info(error.message);
-
-      return next(error);
-    }
-  
-    if (project.creator.toString() !== req.userData.userId) {
-      const error = new HttpError('You are not allowed to edit this project.', 401);
       logger.info(error.message);
 
       return next(error);

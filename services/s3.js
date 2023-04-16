@@ -45,7 +45,6 @@ const uploadFile = async (dataBase64, projectId) => {
     }
   } catch (e) {
     logger.info(`"PATCH" request failed, message: ${e.message}. something wrong with the request to s3`)
-    console.log(e);
   }
 }
 

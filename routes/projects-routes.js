@@ -2,6 +2,7 @@ const express = require('express');
 
 const projectControllers = require('../controllers/projects-controllers');
 const checkAuth = require('../middleware/check-auth');
+const checkPermission = require('../middleware/check-permission');
 
 const router = express.Router();
 
@@ -20,9 +21,17 @@ router.post(
 
 router.patch(
   '/:pid',
+  checkPermission,
   projectControllers.updateProject
 );
 
 router.delete('/:pid', projectControllers.deleteProject);
+
+router.post('/:pid/invite', projectControllers.sendInvitation);
+router.post(
+  '/:pid/invitations/:invitationId', 
+  checkPermission, 
+  projectControllers.joinToProject
+);
 
 module.exports = router;
