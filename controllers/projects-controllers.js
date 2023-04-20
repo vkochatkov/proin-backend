@@ -79,15 +79,22 @@ const getProjectsByUserId = async (req, res, next) => {
 
   let projects;
   try {
-    const creatorProjects = await Project.find({ creator: userId }).populate({
-      path: 'comments',
+    const userWithProjects = await User.findById(userId).populate({
+      path: 'projects',
+      populate: {
+        path: 'comments',
+      },
     });
 
     const memberProjects = await Project.find({ sharedWith: userId }).populate({
       path: 'comments',
     });
 
-    projects = [...creatorProjects, ...memberProjects];
+    const uniqueMemberProjects = memberProjects.filter(project =>
+      !userWithProjects.projects.some(userProject => userProject._id.equals(project._id))
+    );
+
+    projects = [...userWithProjects.projects, ...uniqueMemberProjects];
   } catch (err) {
     const error = new HttpError(
       'Fetching projects failed, please try again later.',
@@ -186,7 +193,7 @@ const updateProject = async (req, res, next) => {
     project.projectName = projectName;
   }
 
-  if (description) {
+  if (description === '' || description) {
     project.description = description;
   }
 
