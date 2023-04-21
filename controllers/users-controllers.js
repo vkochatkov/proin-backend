@@ -31,7 +31,7 @@ const signup = async (req, res, next) => {
     );
   }
 
-  const { email, password } = req.body;
+  const { email, password, name } = req.body;
   logger.info(`POST signin up request started with credentials email: ${email}, password: ${password}`)
   
   let existingUser;
@@ -67,6 +67,7 @@ const signup = async (req, res, next) => {
   const createdUser = new User({
     email,
     password: hashedPassword,
+    name
   });
 
   try {
@@ -180,6 +181,7 @@ const login = async (req, res, next) => {
   res.json({
     userId: existingUser.id,
     email: existingUser.email,
+    name: existingUser.name,
     token
   });
 };

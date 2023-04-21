@@ -189,7 +189,7 @@ const updateProject = async (req, res, next) => {
     }
   }
 
-  if (projectName) {
+  if (projectName === '' || projectName) {
     project.projectName = projectName;
   }
 
@@ -221,6 +221,7 @@ const deleteProject = async (req, res, next) => {
       'Something went wrong, could not delete project.',
       500
     );
+    logger.info(`POST deleteProject ${error}`);
     return next(error);
   }
 
@@ -234,6 +235,7 @@ const deleteProject = async (req, res, next) => {
       'You are not allowed to delete this project.',
       401
     );
+    logger.info(`POST deleteProject ${error}`);
     return next(error);
   }
 
@@ -249,6 +251,18 @@ const deleteProject = async (req, res, next) => {
       'Something went wrong, could not delete project.',
       500
     );
+    logger.info(`POST deleteProject ${err}`);
+    return next(error);
+  }
+
+  try {
+    await ProjectMember.deleteMany({ projectId: projectId }).exec();
+  } catch (err) {
+    const error = new HttpError(
+      'Something went wrong, could not remove project member.',
+      500
+    );
+    logger.info(`POST deleteProject ${err}`);
     return next(error);
   }
 

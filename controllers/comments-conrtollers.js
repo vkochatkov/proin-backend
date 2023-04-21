@@ -3,7 +3,9 @@ const HttpError = require('../models/http-error');
 const Comment = require('../models/comment');
 
 const Project = require('../models/project');
+const User = require('../models/user');
 const logger = require('../services/logger');
+const mailer = require('../nodemailer');
 
 require('dotenv').config();
 
@@ -26,7 +28,7 @@ const findProject = async (projectId) => {
 
 const createProjectComment = async (req, res, next) => {
   const projectId = req.params.pid;
-  const { id, text, timestamp, name, userId } = req.body;
+  const { id, text, timestamp, name, userId, mentions } = req.body;
   
   const project = await findProject(projectId);
 
@@ -36,7 +38,7 @@ const createProjectComment = async (req, res, next) => {
     timestamp,
     name,
     projectId,
-    userId
+    userId,
   })
 
   let updatedProject;
@@ -46,6 +48,17 @@ const createProjectComment = async (req, res, next) => {
     project.comments.push(comment);
     await project.save();
     updatedProject = await findProject(projectId);
+    const users = await User.find({ name: { $in: mentions } });
+
+    users.forEach(user => {
+      const message = {
+        to: user.email,
+        subject: 'Вам відповіли у проекті',
+        text: `${user.name}!, \n\n Вас згадали у коментарі.\n\n"${comment.text}"\n\nЗ найкращими побажаннями,\nКоманда ПРОІН`
+      }
+  
+      mailer(message);
+    });
   } catch (err) {
     logger.error(`Error creating comment: ${err.message}`);
     const error = new HttpError('Something went wrong, could not create comment.', 500);
