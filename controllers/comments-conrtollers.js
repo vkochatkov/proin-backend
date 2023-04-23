@@ -45,9 +45,9 @@ const createProjectComment = async (req, res, next) => {
 
   try {
     await comment.save();
-    project.comments.push(comment);
+    project.comments.unshift(comment);
     await project.save();
-    updatedProject = await findProject(projectId);
+
     const users = await User.find({ name: { $in: mentions } });
 
     users.forEach(user => {
@@ -65,7 +65,7 @@ const createProjectComment = async (req, res, next) => {
     return next(error);
   }
 
-  res.status(200).json({comments: updatedProject.comments});
+  res.status(200).json({comments: project.comments});
 }
 
 const updateProjectComments = async(req, res, next) => {
