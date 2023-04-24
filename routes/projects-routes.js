@@ -28,10 +28,13 @@ router.patch(
 router.delete('/:pid', projectControllers.deleteProject);
 
 router.post('/:pid/invite', projectControllers.sendInvitation);
+
 router.post(
   '/:pid/invitations/:invitationId', 
   checkPermission, 
   projectControllers.joinToProject
 );
+
+router.patch('/:projectId/moving', projectControllers.moveProject);
 
 module.exports = router;

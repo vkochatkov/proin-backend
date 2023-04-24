@@ -12,7 +12,9 @@ const projectSchema = new Schema({
     invitationId: String,
     email: String
   }],
-  sharedWith: [{ type: mongoose.Types.ObjectId, ref: 'User' }]
+  sharedWith: [{ type: mongoose.Types.ObjectId, ref: 'User' }],
+  subProjects: [{ type: mongoose.Types.ObjectId , ref: 'Project'}],
+  parentProject: { type: mongoose.Types.ObjectId, ref: 'Project' }
 });
 
 module.exports = mongoose.model('Project', projectSchema);

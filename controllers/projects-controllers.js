@@ -81,9 +81,17 @@ const getProjectsByUserId = async (req, res, next) => {
   try {
     const userWithProjects = await User.findById(userId).populate({
       path: 'projects',
-      populate: {
-        path: 'comments',
-      },
+      populate: [
+        {
+          path: 'comments'
+        },
+        {
+          path: 'subProjects',
+          populate: {
+            path: 'comments'
+          }
+        }
+      ]
     });
 
     const memberProjects = await Project.find({ sharedWith: userId }).populate({
@@ -401,6 +409,109 @@ const joinToProject = async (req, res, next) => {
   return res.status(200).json({ message: 'Joined project' });
 };
 
+const moveProject = async (req, res, next) => {
+  const { projectId, toProjectId } = req.body;
+  const userId = req.userData.userId;
+
+  try {
+    // Find the project or subproject to move
+    const projectToMove = await Project.findById(projectId);
+    if (!projectToMove) {
+      const error = new HttpError('Project not found.', 404);
+      return next(error);
+    }
+  
+    // Check if the user owns the project or subproject to move
+    if (projectToMove.creator.toString() !== userId) {
+      const error = new HttpError('You are not authorized to move this project.', 401);
+      return next(error);
+    }
+  
+    if (!toProjectId) {
+      // If there is no target project, add the project to the user's projects
+      const user = await User.findById(userId);
+      if (!user) {
+        const error = new HttpError('User not found.', 404);
+        return next(error);
+      }
+      user.projects.push(projectToMove);
+      await user.save();
+
+      // If the project to move is a subproject, remove it from its parent project
+      if (projectToMove.parentProject) {
+        const parentProject = await Project.findById(projectToMove.parentProject);
+        if (!parentProject) {
+          const error = new HttpError('Parent project not found.', 404);
+          return next(error);
+        }
+        parentProject.subProjects = parentProject.subProjects
+          .filter(subProjectId => subProjectId.toString() !== projectId);
+        await parentProject.save();
+      }
+    } else {
+      // Find the project or subproject to move it to
+      const toProject = await Project.findById(toProjectId);
+      if (!toProject) {
+        const error = new HttpError('Target project not found.', 404);
+        return next(error);
+      }
+  
+      // Check if the user owns both projects or subprojects
+      if (toProject.creator.toString() !== userId) {
+        const error = new HttpError('You are not authorized to move the project to this project.', 401);
+        return next(error);
+      }
+  
+      // If the project to move is a subproject, remove it from its parent project
+      if (projectToMove.parentProject) {
+        const parentProject = await Project.findById(projectToMove.parentProject);
+        if (!parentProject) {
+          const error = new HttpError('Parent project not found.', 404);
+          return next(error);
+        }
+        parentProject.subProjects = parentProject.subProjects
+          .filter(subProjectId => subProjectId.toString() !== projectId);
+        await parentProject.save();
+      }
+
+      toProject.subProjects.push(projectToMove);
+      await toProject.save();
+  
+      // If the project to move was a project and it had subprojects, update their parent project
+      if (!projectToMove.parentProject && projectToMove.subProjects.length > 0) {
+        const subProjects = await Project.find({ _id: { $in: projectToMove.subProjects } });
+        for (const subProject of subProjects) {
+          subProject.parentProject = toProject._id;
+          await subProject.save();
+        }
+      }
+  
+      // If the project to move was a project, remove it from the user's projects array
+      if (!projectToMove.parentProject) {
+        const user = await User.findById(userId);
+        if (!user) {
+          const error = new HttpError('User not found.', 404);
+          return next(error);
+        }
+        user.projects = user.projects.filter(userProjectId => userProjectId.toString() !== projectId);
+        await user.save();
+      }
+
+      projectToMove.parentProject = toProject._id;
+      await projectToMove.save();
+    }
+  } catch (err) {
+    const error = new HttpError(
+      'Something went wrong, could not move project.',
+      500
+    );
+    logger.info(`moveProject : ${err}`)
+    return next(error);
+  }
+
+  res.status(200).json({ message: 'Project moved successfully.' });
+};
+
 exports.getProjectById = getProjectById;
 exports.getProjectsByUserId = getProjectsByUserId;
 exports.updateProjectsByUserId = updateProjectsByUserId;
@@ -409,3 +520,4 @@ exports.updateProject = updateProject;
 exports.deleteProject = deleteProject;
 exports.sendInvitation = sendInvitation;
 exports.joinToProject = joinToProject;
+exports.moveProject = moveProject;
