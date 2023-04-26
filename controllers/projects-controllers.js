@@ -74,7 +74,7 @@ const getProjectById = async (req, res, next) => {
   res.json({ project: project.toObject({ getters: true }) });
 };
 
-const getProjectsByUserId = async (req, res, next) => {
+const getUsersProjects = async (req, res, next) => {
   const userId = req.params.uid;
 
   let projects;
@@ -117,6 +117,24 @@ const getProjectsByUserId = async (req, res, next) => {
     )
   });
 };
+
+const getAllProjectsByUserId = async (req, res, next) => {
+  const userId = req.params.uid;
+
+  let projects;
+
+  try {
+    projects = await Project.find({ creator: userId });
+  } catch (e) {
+    logger.info(`getAllProjectsByUserId error: ${e}`)
+  }
+
+  res.json({
+    projects: projects.map(project =>
+      project.toObject({ getters: true })
+    )
+  });
+}
 
 const updateProjectsByUserId = async (req, res, next) => {
   const userId = req.params.uid;
@@ -412,6 +430,7 @@ const joinToProject = async (req, res, next) => {
 const moveProject = async (req, res, next) => {
   const { projectId, toProjectId } = req.body;
   const userId = req.userData.userId;
+  const isToUsersProjects = toProjectId === 'В корінь';
 
   try {
     // Find the project or subproject to move
@@ -427,15 +446,19 @@ const moveProject = async (req, res, next) => {
       return next(error);
     }
   
-    if (!toProjectId) {
+    if (!toProjectId || isToUsersProjects) {
       // If there is no target project, add the project to the user's projects
       const user = await User.findById(userId);
       if (!user) {
         const error = new HttpError('User not found.', 404);
         return next(error);
       }
-      user.projects.push(projectToMove);
-      await user.save();
+
+      const projectIndex = user.projects.findIndex(p => p.toString() === projectId);
+      if (projectIndex === -1) {
+        user.projects.push(projectToMove);
+        await user.save();
+      }
 
       // If the project to move is a subproject, remove it from its parent project
       if (projectToMove.parentProject) {
@@ -448,6 +471,13 @@ const moveProject = async (req, res, next) => {
           .filter(subProjectId => subProjectId.toString() !== projectId);
         await parentProject.save();
       }
+
+      // Clear parentProject if becoming a top-level project
+      if (projectToMove.parentProject) {
+        projectToMove.parentProject = undefined;
+      }
+
+      await projectToMove.save();
     } else {
       // Find the project or subproject to move it to
       const toProject = await Project.findById(toProjectId);
@@ -513,7 +543,8 @@ const moveProject = async (req, res, next) => {
 };
 
 exports.getProjectById = getProjectById;
-exports.getProjectsByUserId = getProjectsByUserId;
+exports.getUsersProjects = getUsersProjects;
+exports.getAllProjectsByUserId = getAllProjectsByUserId;
 exports.updateProjectsByUserId = updateProjectsByUserId;
 exports.createProject = createProject;
 exports.updateProject = updateProject;

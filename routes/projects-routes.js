@@ -8,7 +8,9 @@ const router = express.Router();
 
 router.get('/:pid', projectControllers.getProjectById);
 
-router.get('/user/:uid', projectControllers.getProjectsByUserId);
+router.get('/user/:uid', projectControllers.getUsersProjects);
+
+router.get('/all/:uid', projectControllers.getAllProjectsByUserId);
 
 router.put('/user/:uid', projectControllers.updateProjectsByUserId);
 
@@ -35,6 +37,6 @@ router.post(
   projectControllers.joinToProject
 );
 
-router.patch('/:projectId/moving', projectControllers.moveProject);
+router.post('/:projectId/moving', projectControllers.moveProject);
 
 module.exports = router;
