@@ -202,7 +202,7 @@ const createProject = async (req, res, next) => {
 
 const updateProject = async (req, res, next) => {
   logger.info(`"PATCH" update project request to "${req.protocol}://${req.get('host')}/projects/:uid" `)
-  const { projectName, description, logoUrl } = req.body;
+  const { projectName, description, logoUrl, subProjects } = req.body;
   const projectId = req.params.pid;
 
   const project = await findProject(projectId);
@@ -221,6 +221,15 @@ const updateProject = async (req, res, next) => {
 
   if (description === '' || description) {
     project.description = description;
+  }
+
+  if (subProjects && subProjects.length > 0) {
+    const subProjectIds = subProjects.map((subProject) => subProject._id);
+    project.subProjects = subProjectIds;
+    await Project.updateMany(
+      { _id: { $in: subProjectIds } },
+      { $set: { parentProject: project._id } }
+    );
   }
 
   try {
