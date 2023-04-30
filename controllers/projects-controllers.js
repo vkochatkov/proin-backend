@@ -54,7 +54,13 @@ const getProjectById = async (req, res, next) => {
 
   let project;
   try {
-    project = await Project.findById(projectId);
+    project = await Project.findById(projectId).populate({
+      path: 'subProjects',
+      populate: {
+        path: 'comments'
+      }
+    })
+    .populate('comments');
   } catch (err) {
     const error = new HttpError(
       'Something went wrong, could not find a project.',
