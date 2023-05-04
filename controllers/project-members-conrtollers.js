@@ -30,4 +30,41 @@ const getProjectMembers = async (req, res, next) => {
   });
 };
 
+const removeProjectMember = async (req, res, next) => {
+  const projectId = req.params.pid;
+  const { userId } = req.body;
+
+  let projectMember;
+  try {
+    projectMember = await ProjectMember.findOne({ userId, projectId });
+  } catch (err) {
+    const error = new HttpError(
+      'Something went wrong, could not remove the project member.',
+      500
+    );
+    return next(error);
+  }
+
+  if (!projectMember) {
+    const error = new HttpError(
+      'Could not find project member for the provided user id and project id.',
+      404
+    );
+    return next(error);
+  }
+
+  try {
+    await projectMember.remove();
+  } catch (err) {
+    const error = new HttpError(
+      'Something went wrong, could not remove the project member.',
+      500
+    );
+    return next(error);
+  }
+
+  res.status(200).json({ message: 'Project member removed' });
+};
+
+exports.removeProjectMember = removeProjectMember;
 exports.getProjectMembers = getProjectMembers;
