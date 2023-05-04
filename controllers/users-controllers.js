@@ -9,9 +9,15 @@ const mailer = require('../nodemailer');
 require('dotenv').config();
 
 const getUsers = async (req, res, next) => {
+  const searchString = req.query.search || '';
   let users;
   try {
-    users = await User.find({}, '-password');
+    users = await User.find({
+      $or: [
+        { email: { $regex: searchString, $options: 'i' } },
+        { name: { $regex: searchString, $options: 'i' } },
+      ]
+    }, '-password');
   } catch (err) {
     const error = new HttpError(
       'Fetching users failed, please try again later.',
@@ -201,46 +207,46 @@ const forgotPassword = async (req, res, next) => {
     return next(error);
   }
 
-  if (!existingUser) {
-    logger.info(`існуючого користувача email:${email} не вдалося знайти, статус 403`)
-    const error = new HttpError(
-      'Invalid credentials, could not log you in.',
-      403
-    );
-    return next(error);
-  }
-
-  let token;
-  try {
-    token = jwt.sign(
-      { userId: existingUser.id, email: existingUser.email },
-      process.env.JWT_KEY,
-      { expiresIn: process.env.EXPIRES_IN }
-    );
-  } catch (err) {
-    const error = new HttpError(
-      'Logging in failed, please try again later.',
-      500
-    );
-    return next(error);
-  }
-
-  const message = {
-    to: email,
-    subject: 'Відновлення паролю',
-    html: `
-    <div>
-      <p>
-        Натисни <a href="${process.env.FRONTEND_HOST}/reset-password/${token}">посилання</a> 
-        щоб оновити пароль.
-      </p>
-      <p>
-        Даний лист не потребує відповіді
-      </p>
-    </div>
-    `
-  };
-
+    if (!existingUser) {
+      logger.info(`існуючого користувача email:${email} не вдалося знайти, статус 403`)
+      const error = new HttpError(
+        'Invalid credentials, could not log you in.',
+        403
+      );
+      return next(error);
+    }
+  
+    let token;
+    try {
+      token = jwt.sign(
+        { userId: existingUser.id, email: existingUser.email },
+        process.env.JWT_KEY,
+        { expiresIn: process.env.EXPIRES_IN }
+      );
+    } catch (err) {
+      const error = new HttpError(
+        'Logging in failed, please try again later.',
+        500
+      );
+      return next(error);
+    }
+  
+    const message = {
+      to: email,
+      subject: 'Відновлення паролю',
+      html: `
+      <div>
+        <p>
+          Натисни <a href="${process.env.FRONTEND_HOST}/reset-password/${token}">посилання</a> 
+          щоб оновити пароль.
+        </p>
+        <p>
+          Даний лист не потребує відповіді
+        </p>
+      </div>
+      `
+    };  
+  
   mailer(message);
 
   res.json('reset email message was sent successfully');

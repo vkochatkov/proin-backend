@@ -328,54 +328,63 @@ const deleteProject = async (req, res, next) => {
 
 const sendInvitation = async (req, res, next) => {
   const projectId = req.params.pid;
-  const { email } = req.body;
+  const { users } = req.body;
 
-  // Find the user with the provided email in your database
+  if (!Array.isArray(users)) {
+    const error = new HttpError('Invalid input', 400);
+    return next(error);
+  }
+
   try {
-    const userToInvite = await User.findOne({ email });
-    if (!userToInvite) {
-      return res.status(400).json({ message: 'User not found' });
+    for (let user of users) {
+      const email = user.email;
+
+      const userToInvite = await User.findOne({ email });
+      if (!userToInvite) {
+        return res.status(400).json({ message: 'User not found' });
+      }
+    
+      const invitationId = uuid();
+    
+      const project = await Project.findById(projectId);
+      project.invitations.push({
+        invitationId,
+        email,
+      });
+  
+       // Add the user to the ProjectMember collection as a member
+       const projectMember = new ProjectMember({
+        projectId,
+        userId: userToInvite.id,
+        role: 'admin',
+        status: 'pending'
+      });
+  
+      await projectMember.save();
+      await project.save();
+    
+      const invitationLink = `${process.env.FRONTEND_HOST}/projects/${projectId}/invitations/${invitationId}`;
+      // const invitationLink = `http://localhost:5000/projects/${projectId}/invitations/${invitationId}`;
+    
+      const message = {
+        to: email,
+        subject: 'Запрошення до проекту',
+        html: `
+        <div>
+          <p>
+            Натисни <a href="${invitationLink}">посилання</a> 
+            щоб прийняти зарпошення.
+          </p>
+          <p>
+            Даний лист не потребує відповіді
+          </p>
+        </div>
+        `
+      };
+    
+      mailer(message);
     }
-  
-    const invitationId = uuid();
-  
-    const project = await Project.findById(projectId);
-    project.invitations.push({
-      invitationId,
-      email,
-    });
 
-     // Add the user to the ProjectMember collection as a member
-     const projectMember = new ProjectMember({
-      projectId,
-      userId: userToInvite.id,
-      role: 'admin',
-      status: 'pending'
-    });
-
-    await projectMember.save();
-    await project.save();
-  
-    const invitationLink = `${process.env.FRONTEND_HOST}/projects/${projectId}/invitations/${invitationId}`;
-    // const invitationLink = `http://localhost:5000/projects/${projectId}/invitations/${invitationId}`;
-  
-    const message = {
-      to: email,
-      subject: 'Запрошення до проекту',
-      html: `
-      <div>
-        <p>
-          Натисни <a href="${invitationLink}">посилання</a> 
-          щоб прийняти зарпошення.
-        </p>
-        <p>
-          Даний лист не потребує відповіді
-        </p>
-      </div>
-      `
-    };
-  
-    mailer(message);
   } catch (e) {
     const error = new HttpError('the error happen while sending access invitation', 500);
     logger.info(`sendInvitation ${e.message}`)
@@ -383,7 +392,7 @@ const sendInvitation = async (req, res, next) => {
     return next(error);
   }
 
-  return res.status(200).json({ message: 'Invitation sent' });
+  return res.status(200).json({ message: 'Invitations sent' });
 };
 
 const joinToProject = async (req, res, next) => {

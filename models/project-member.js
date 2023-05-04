@@ -19,7 +19,7 @@ const projectMemberSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'guest'],
+    enum: ['creator', 'admin', 'guest'],
     required: true
   },
   status: {
