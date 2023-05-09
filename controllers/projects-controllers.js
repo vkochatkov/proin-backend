@@ -108,7 +108,11 @@ const getUsersProjects = async (req, res, next) => {
       !userWithProjects.projects.some(userProject => userProject._id.equals(project._id))
     );
 
-    projects = [...userWithProjects.projects, ...uniqueMemberProjects];
+    projects = [
+      ...userWithProjects.projects.filter(project => !project.parentProject),
+      ...uniqueMemberProjects.filter(project => !project.parentProject)
+    ];
+
   } catch (err) {
     const error = new HttpError(
       'Fetching projects failed, please try again later.',
@@ -465,8 +469,10 @@ const moveProject = async (req, res, next) => {
     }
   
     // Check if the user owns the project or subproject to move
-    if (projectToMove.creator.toString() !== userId) {
-      const error = new HttpError('You are not authorized to move this project.', 401);
+    const projectMember = await ProjectMember.findOne({projectId: projectId, userId: userId});
+    
+    if (!projectMember || projectMember.role !== 'admin') {
+      const error = new HttpError('У вас немає прав переміщувати проект', 401);
       return next(error);
     }
   
@@ -510,12 +516,6 @@ const moveProject = async (req, res, next) => {
         return next(error);
       }
   
-      // Check if the user owns both projects or subprojects
-      if (toProject.creator.toString() !== userId) {
-        const error = new HttpError('You are not authorized to move the project to this project.', 401);
-        return next(error);
-      }
-  
       // If the project to move is a subproject, remove it from its parent project
       if (projectToMove.parentProject) {
         const parentProject = await Project.findById(projectToMove.parentProject);
@@ -530,15 +530,6 @@ const moveProject = async (req, res, next) => {
 
       toProject.subProjects.push(projectToMove);
       await toProject.save();
-  
-      // If the project to move was a project and it had subprojects, update their parent project
-      if (!projectToMove.parentProject && projectToMove.subProjects.length > 0) {
-        const subProjects = await Project.find({ _id: { $in: projectToMove.subProjects } });
-        for (const subProject of subProjects) {
-          subProject.parentProject = toProject._id;
-          await subProject.save();
-        }
-      }
   
       // If the project to move was a project, remove it from the user's projects array
       if (!projectToMove.parentProject) {

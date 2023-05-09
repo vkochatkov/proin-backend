@@ -10,14 +10,18 @@ require('dotenv').config();
 
 const getUsers = async (req, res, next) => {
   const searchString = req.query.search || '';
-  let users;
+  const userId = req.query.id || '';
+
+  let usersWithoutCreator;
   try {
-    users = await User.find({
+    const users = await User.find({
       $or: [
         { email: { $regex: searchString, $options: 'i' } },
         { name: { $regex: searchString, $options: 'i' } },
       ]
     }, '-password');
+
+    usersWithoutCreator = users.filter(user => user.id !== userId);
   } catch (err) {
     const error = new HttpError(
       'Fetching users failed, please try again later.',
@@ -25,7 +29,8 @@ const getUsers = async (req, res, next) => {
     );
     return next(error);
   }
-  res.json({ users: users.map(user => user.toObject({ getters: true })) });
+  
+  res.json({ users: usersWithoutCreator.map(user => user.toObject({ getters: true })) });
 };
 
 const signup = async (req, res, next) => {
