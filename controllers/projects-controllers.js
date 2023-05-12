@@ -114,6 +114,7 @@ const getUsersProjects = async (req, res, next) => {
     ];
 
   } catch (err) {
+    logger.info(`getUsersProjects error: ${err}`)
     const error = new HttpError(
       'Fetching projects failed, please try again later.',
       500
@@ -164,6 +165,7 @@ const updateProjectsByUserId = async (req, res, next) => {
 
     res.status(200).json({ message: 'Project order updated successfully.' });
   } catch (err) {
+    logger.info(`updateProjectsByUserId error: ${err}`)
     const error = new HttpError(
       'Updating project order failed, please try again.',
       500
@@ -245,6 +247,7 @@ const updateProject = async (req, res, next) => {
   try {
     await project.save();
   } catch (err) {
+    logger.info(`updateProject error: ${err}`)
     const error = new HttpError(
       'Something went wrong, could not update project.',
       500
@@ -344,27 +347,26 @@ const sendInvitation = async (req, res, next) => {
       const email = user.email;
 
       const userToInvite = await User.findOne({ email });
-      if (!userToInvite) {
-        return res.status(400).json({ message: 'User not found' });
-      }
-    
+
       const invitationId = uuid();
-    
+
       const project = await Project.findById(projectId);
       project.invitations.push({
         invitationId,
         email,
       });
-  
-       // Add the user to the ProjectMember collection as a member
-       const projectMember = new ProjectMember({
-        projectId,
-        userId: userToInvite.id,
-        role: 'admin',
-        status: 'pending'
-      });
-  
-      await projectMember.save();
+    
+      if (userToInvite) {
+        const projectMember = new ProjectMember({
+          projectId,
+          userId: userToInvite.id,
+          role: 'admin',
+          status: 'pending'
+        });
+    
+        await projectMember.save();
+      }
+
       await project.save();
     
       const invitationLink = `${process.env.FRONTEND_HOST}/projects/${projectId}/invitations/${invitationId}`;
@@ -432,18 +434,24 @@ const joinToProject = async (req, res, next) => {
     await project.save();
   
      // Update the ProjectMember record to 'active'
-     const projectMember = await ProjectMember.findOneAndUpdate(
+     let projectMember = await ProjectMember.findOneAndUpdate(
       { projectId: pid, userId: currentUserId, status: 'pending' },
       { $set: { status: 'active' } },
       { new: true }
     );
 
     if (!projectMember) {
-      return res.status(400).json({ message: 'User is not invited to join this project' });
+      projectMember = new ProjectMember({
+        userId: currentUserId, 
+        projectId: pid, 
+        status: 'active',
+        role: 'admin'
+      })
     }
   
     await projectMember.save();
   } catch (e) {
+    logger.info(`joinToProject error: ${e.message}`)
     const error = new HttpError(
       `something went wrong: ${e.message}`,
       500
@@ -550,7 +558,7 @@ const moveProject = async (req, res, next) => {
       'Something went wrong, could not move project.',
       500
     );
-    logger.info(`moveProject : ${err}`)
+    logger.info(`moveProject : ${err.message}`)
     return next(error);
   }
 

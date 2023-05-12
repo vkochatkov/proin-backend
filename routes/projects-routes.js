@@ -33,7 +33,6 @@ router.post('/:pid/invite', projectControllers.sendInvitation);
 
 router.post(
   '/:pid/invitations/:invitationId', 
-  checkPermission, 
   projectControllers.joinToProject
 );
 

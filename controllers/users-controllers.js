@@ -23,6 +23,7 @@ const getUsers = async (req, res, next) => {
 
     usersWithoutCreator = users.filter(user => user.id !== userId);
   } catch (err) {
+    logger.info(`getUsers ${err.message}`)
     const error = new HttpError(
       'Fetching users failed, please try again later.',
       500
@@ -229,6 +230,7 @@ const forgotPassword = async (req, res, next) => {
         { expiresIn: process.env.EXPIRES_IN }
       );
     } catch (err) {
+      logger.info(`forgotPassword ${err.message}`)
       const error = new HttpError(
         'Logging in failed, please try again later.',
         500
