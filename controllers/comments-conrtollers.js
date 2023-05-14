@@ -41,8 +41,6 @@ const createProjectComment = async (req, res, next) => {
     userId,
   })
 
-  let updatedProject;
-
   try {
     await comment.save();
     project.comments.unshift(comment);

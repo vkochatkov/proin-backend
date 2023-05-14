@@ -214,13 +214,15 @@ const createProject = async (req, res, next) => {
 
 const updateProject = async (req, res, next) => {
   logger.info(`"PATCH" update project request to "${req.protocol}://${req.get('host')}/projects/:uid" `)
-  const { projectName, description, logoUrl, subProjects } = req.body;
+  const { projectName, description, logoUrl, subProjects, files } = req.body;
   const projectId = req.params.pid;
 
   const project = await findProject(projectId);
 
   if (logoUrl) {
-    const { isUploaded, url } = await uploadFile(logoUrl, projectId);
+    const generatedName = uuid();
+    const filename = `${generatedName}.jpg`;
+    const { isUploaded, url } = await uploadFile(logoUrl, projectId, filename);
 
     if (isUploaded) {
       project.logoUrl = url;
@@ -242,6 +244,21 @@ const updateProject = async (req, res, next) => {
       { _id: { $in: subProjectIds } },
       { $set: { parentProject: project._id } }
     );
+  }
+
+  if (files && files.length > 0) {
+    const downloadedFiles = await Promise.all(files.map(async (file) => {
+      const { isUploaded, url } = await uploadFile(file.data, projectId, file.name);
+
+      if (isUploaded) {
+        return {
+          url: url,
+          name: file.name
+        }
+      }
+    }));
+
+    project.files = downloadedFiles.filter(file => file !== undefined);
   }
 
   try {

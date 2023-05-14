@@ -14,7 +14,11 @@ const projectSchema = new Schema({
   }],
   sharedWith: [{ type: mongoose.Types.ObjectId, ref: 'User' }],
   subProjects: [{ type: mongoose.Types.ObjectId , ref: 'Project'}],
-  parentProject: { type: mongoose.Types.ObjectId, ref: 'Project' }
+  parentProject: { type: mongoose.Types.ObjectId, ref: 'Project' },
+  files: [{
+    name: { type: String }, 
+    url: { type: String }
+  }]
 });
 
 module.exports = mongoose.model('Project', projectSchema);

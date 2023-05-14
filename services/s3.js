@@ -15,12 +15,10 @@ const client = new S3Client({ region, credentials:{
   secretAccessKey,
 }});
 
-const uploadFile = async (dataBase64, projectId) => {
+const uploadFile = async (dataBase64, projectId, filename) => {
   try {
     const buff = new Buffer.from(dataBase64.replace(/^data:image\/\w+;base64,/, ""), 'base64');
-    const generatedName = uuid();
-    const filename = `${generatedName}.jpg`;
-    const path = `images/${projectId}/${filename}`;
+    const path = `files/${projectId}/${filename}`;
 
     logger.info('uploadFile func is going well. next step is client.send request, 25 line');
     const response = await client.send(
