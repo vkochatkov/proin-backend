@@ -248,7 +248,7 @@ const updateProject = async (req, res, next) => {
 
   if (files && files.length > 0) {
     const downloadedFiles = await Promise.all(files.map(async (file) => {
-      const { isUploaded, url } = await uploadFile(file.data, projectId, file.name);
+      const { isUploaded, url } = await uploadFile(file.dataUrl, projectId, file.name);
 
       if (isUploaded) {
         return {
@@ -258,7 +258,7 @@ const updateProject = async (req, res, next) => {
       }
     }));
 
-    project.files = downloadedFiles.filter(file => file !== undefined);
+    project.files = project.files.concat(downloadedFiles.filter(file => file !== undefined));
   }
 
   try {
@@ -582,6 +582,36 @@ const moveProject = async (req, res, next) => {
   res.status(200).json({ message: 'Project moved successfully.' });
 };
 
+const removeFile = async (req, res, next) => {
+  const projectId = req.params.pid;
+  const fileId = req.params.fid;
+
+  try {
+    // Find the project by ID
+    const project = await findProject(projectId);
+
+    // Find the file by ID
+    const file = project.files.find(file => file._id.toString() === fileId);
+
+    if (!file) {
+      return res.status(404).json({ message: 'File not found' });
+    }
+
+    // Delete the file from AWS S3
+    await deleteFile(file.url);
+
+    // Remove the file from the array
+    project.files = project.files.filter(file => file._id.toString() !== fileId);
+
+    // Save the updated project
+    await project.save();
+
+    res.json({ message: 'File removed successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getProjectById = getProjectById;
 exports.getUsersProjects = getUsersProjects;
 exports.getAllProjectsByUserId = getAllProjectsByUserId;
@@ -592,3 +622,4 @@ exports.deleteProject = deleteProject;
 exports.sendInvitation = sendInvitation;
 exports.joinToProject = joinToProject;
 exports.moveProject = moveProject;
+exports.removeFile = removeFile;

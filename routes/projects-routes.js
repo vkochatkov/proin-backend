@@ -38,4 +38,6 @@ router.post(
 
 router.post('/:projectId/moving', projectControllers.moveProject);
 
+router.delete('/:pid/files/:fid', projectControllers.removeFile);
+
 module.exports = router;
