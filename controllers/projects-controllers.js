@@ -100,9 +100,22 @@ const getUsersProjects = async (req, res, next) => {
       ]
     });
 
-    const memberProjects = await Project.find({ sharedWith: userId }).populate({
-      path: 'comments',
-    });
+    const memberProjects = await Project.find({ sharedWith: userId })
+      .populate({
+        path: 'comments',
+      })
+      .populate({
+        path: 'subProjects',
+        populate: {
+          path: 'comments',
+          populate: {
+            path: 'subProjects',
+            populate: {
+              path: 'comments'
+            }
+          }
+        }
+      });
 
     const uniqueMemberProjects = memberProjects.filter(project =>
       !userWithProjects.projects.some(userProject => userProject._id.equals(project._id))
