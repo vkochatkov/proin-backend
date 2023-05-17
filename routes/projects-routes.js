@@ -40,4 +40,6 @@ router.post('/:projectId/moving', projectControllers.moveProject);
 
 router.delete('/:pid/files/:fid', projectControllers.removeFile);
 
+router.post('/:pid/subprojects', projectControllers.createSubProject);
+
 module.exports = router;
