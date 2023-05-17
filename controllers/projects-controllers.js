@@ -176,11 +176,11 @@ const updateProjectsByUserId = async (req, res, next) => {
     await user.save({ session: sess });
     await sess.commitTransaction();
 
-    res.status(200).json({ message: 'Project order updated successfully.' });
+    res.status(200).json({ message: 'Project updated successfully.' });
   } catch (err) {
     logger.info(`updateProjectsByUserId error: ${err}`)
     const error = new HttpError(
-      'Updating project order failed, please try again.',
+      'Updating project failed, please try again.',
       500
     );
     return next(error);
@@ -683,6 +683,28 @@ const createSubProject = async (req, res, next) => {
   res.status(201).json({ subproject: createdSubProject });
 };
 
+const updateFilesInProject = async (req, res, next) => {
+  const projectId = req.params.pid;
+  const { files } = req.body;
+
+  try {
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found.' });
+    }
+    
+    project.files = files;
+
+    await project.save();
+
+    res.status(200).json({ project: project.toObject({ getters: true }) });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: 'Something went wrong, could not update files in project.' });
+  }
+};
+
 exports.getProjectById = getProjectById;
 exports.getUsersProjects = getUsersProjects;
 exports.getAllProjectsByUserId = getAllProjectsByUserId;
@@ -695,3 +717,5 @@ exports.joinToProject = joinToProject;
 exports.moveProject = moveProject;
 exports.removeFile = removeFile;
 exports.createSubProject = createSubProject;
+exports.updateFilesInProject = updateFilesInProject;
+
