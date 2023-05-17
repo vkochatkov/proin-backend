@@ -320,6 +320,13 @@ const deleteProject = async (req, res, next) => {
   try {
     const sess = await mongoose.startSession();
     sess.startTransaction();
+
+    if (project.parentProject) {
+      const parentProject = await Project.findById(project.parentProject);
+      parentProject.subProjects.pull(project);
+      await parentProject.save({ session: sess });
+    }
+
     await project.remove({ session: sess });
     project.creator.projects.pull(project);
     await project.creator.save({ session: sess });
@@ -625,6 +632,57 @@ const removeFile = async (req, res, next) => {
   }
 };
 
+const createSubProject = async (req, res, next) => {
+  const parentId = req.params.pid; // Get the parent project ID from the request parameters
+
+  let parentProject;
+
+  try {
+    parentProject = await Project.findById(parentId).populate('subProjects'); 
+  } catch (err) {
+    const error = new HttpError('Could not find the parent project.', 404);
+    return next(error);
+  }
+
+  const createdSubProject = new Project({
+    creator: req.userData.userId,
+    parentProject: parentProject.id
+  });
+
+  let user;
+  
+  try {
+    user = await findUser(req.userData.userId);
+
+    const sess = await mongoose.startSession();
+    sess.startTransaction();
+    await createdSubProject.save({ session: sess });
+
+    const creatorMember = new ProjectMember({
+      projectId: createdSubProject.id,
+      userId: user.id,
+      role: 'admin',
+      status: 'active'
+    });
+
+    await creatorMember.save({ session: sess });
+
+    parentProject.subProjects.push(createdSubProject); // Add the subproject to the parent project
+
+    await parentProject.save({ session: sess });
+    await sess.commitTransaction();
+  } catch (err) {
+    logger.info('after close dbtransition error', err);
+    const error = new HttpError(
+      'Creating subproject failed, please try again.',
+      500
+    );
+    return next(error);
+  }
+
+  res.status(201).json({ subproject: createdSubProject });
+};
+
 exports.getProjectById = getProjectById;
 exports.getUsersProjects = getUsersProjects;
 exports.getAllProjectsByUserId = getAllProjectsByUserId;
@@ -636,3 +694,4 @@ exports.sendInvitation = sendInvitation;
 exports.joinToProject = joinToProject;
 exports.moveProject = moveProject;
 exports.removeFile = removeFile;
+exports.createSubProject = createSubProject;
