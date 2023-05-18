@@ -24,7 +24,7 @@ const uploadFile = async (dataBase64, projectId, filename) => {
       throw new Error(`Unknown file type for extension: ${fileExtension}`);
     }
 
-    const buff = new Buffer.from(dataBase64.replace(/^data:image\/\w+;base64,/, ""), 'base64');
+    const buff = Buffer.from(dataBase64.replace(/^data:[^;]+;base64,/, ""), 'base64');
     const path = `files/${projectId}/${filename}`;
 
     logger.info('uploadFile func is going well. next step is client.send request, 25 line');
