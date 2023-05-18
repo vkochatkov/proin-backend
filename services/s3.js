@@ -1,5 +1,5 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const uuid = require('uuid/v1');
+const mime = require('mime-types');
 const logger = require('./logger');
 
 require('dotenv').config();
@@ -17,6 +17,13 @@ const client = new S3Client({ region, credentials:{
 
 const uploadFile = async (dataBase64, projectId, filename) => {
   try {
+    const fileExtension = filename.split('.').pop().toLowerCase();
+    const contentType = mime.lookup(fileExtension);
+
+    if (!contentType) {
+      throw new Error(`Unknown file type for extension: ${fileExtension}`);
+    }
+
     const buff = new Buffer.from(dataBase64.replace(/^data:image\/\w+;base64,/, ""), 'base64');
     const path = `files/${projectId}/${filename}`;
 
@@ -27,7 +34,7 @@ const uploadFile = async (dataBase64, projectId, filename) => {
         ACL: 'public-read',
         Key: path,
         Body: buff,
-        ContentType: 'image/jpg',
+        ContentType: contentType,
         ContentEncoding: 'base64'
       })
     );
