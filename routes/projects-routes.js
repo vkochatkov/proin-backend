@@ -44,8 +44,4 @@ router.post('/:pid/subprojects', projectControllers.createSubProject);
 
 router.post('/:pid/files', projectControllers.updateFilesInProject);
 
-router.post('/:pid/tasks/create', projectControllers.createTask);
-router.delete('/:pid/tasks/:tid', projectControllers.deleteTask);
-router.post('/:pid/tasks/:tid', projectControllers.updateTask);
-
 module.exports = router;
