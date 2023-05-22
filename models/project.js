@@ -13,12 +13,13 @@ const projectSchema = new Schema({
     email: String
   }],
   sharedWith: [{ type: mongoose.Types.ObjectId, ref: 'User' }],
-  subProjects: [{ type: mongoose.Types.ObjectId , ref: 'Project'}],
+  subProjects: [{ type: mongoose.Types.ObjectId , ref: 'Project' }],
   parentProject: { type: mongoose.Types.ObjectId, ref: 'Project' },
   files: [{
     name: { type: String }, 
     url: { type: String }
-  }]
+  }],
+  tasks: [{ type: mongoose.Types.ObjectId, ref: 'Task' }]
 });
 
 module.exports = mongoose.model('Project', projectSchema);
