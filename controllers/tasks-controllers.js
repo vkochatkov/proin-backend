@@ -5,6 +5,25 @@ const logger = require('../services/logger');
 
 require('dotenv').config();
 
+const getAllTasksByProjectId = async (req, res, next) => {
+  const projectId = req.params.pid;
+
+  let tasks;
+  try {
+    tasks = await Task.find({ projectId });
+  } catch (err) {
+    logger.info(`getAllTasksByProjectId error: ${err}`);
+    const error = new HttpError('Fetching tasks failed, please try again.', 500);
+    return next(error);
+  }
+
+  if (!tasks || tasks.length === 0) {
+    return res.status(404).json({ message: 'No tasks found for the provided project ID.' });
+  }
+
+  res.json({ tasks });
+};
+
 const createTask = async (req, res, next) => {
   const userId = req.userData.userId;
   const projectId = req.params.pid;
@@ -103,3 +122,4 @@ const updateTask = async (req, res, next) => {
 exports.updateTask = updateTask;
 exports.deleteTask = deleteTask;
 exports.createTask = createTask;
+exports.getAllTasksByProjectId = getAllTasksByProjectId;
