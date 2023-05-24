@@ -8,7 +8,7 @@ const taskSchema = new Schema({
   userId: { type: mongoose.Types.ObjectId, ref: 'User'}, 
   status: {
     type: String,
-    enum: ['new', 'in progress'],
+    enum: ['new', 'in progress', 'ready', 'canceled'],
     required: true
   },
   description: { type: String },
@@ -17,6 +17,7 @@ const taskSchema = new Schema({
     name: { type: String }, 
     url: { type: String }
   }],
+  taskId: { type: String },
 });
 
 module.exports = mongoose.model('Task', taskSchema);
