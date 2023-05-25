@@ -25,11 +25,7 @@ const getAllTasksByProjectId = async (req, res, next) => {
 
   const tasks = project.tasks;
 
-  if (!tasks || tasks.length === 0) {
-    return res.status(404).json({ message: 'No tasks found for the provided project ID.' });
-  }
-
-  res.json({ tasks });
+  res.json({ tasks: tasks ? tasks : [] });
 };
 
 const createTask = async (req, res, next) => {
@@ -147,7 +143,32 @@ const updateTask = async (req, res, next) => {
   res.status(200).json({ task });
 };
 
+const updateTasksByProjectId = async (req, res, next) => {
+  const projectId = req.params.pid;
+  const { tasks } = req.body
+
+  try {
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      const error = new HttpError('Something went wrong, could not find project', 404);
+      return next(error);
+    }
+
+    project.tasks = tasks;
+
+    await project.save();
+  } catch (e) {
+    logger.info(`updateTaskByProjectId ${e}`)
+    const error = new HttpError('Something went wrong, could not update tasks.', 500);
+    return next(error);
+  }
+
+  res.status(200).json({ message: 'Tasks updated successfully.' });
+}
+
 exports.updateTask = updateTask;
 exports.deleteTask = deleteTask;
 exports.createTask = createTask;
 exports.getAllTasksByProjectId = getAllTasksByProjectId;
+exports.updateTasksByProjectId = updateTasksByProjectId;
