@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Task = require('../models/task');
 const logger = require('../services/logger');
 const Project = require('../models/project');
+const User = require('../models/user');
 
 require('dotenv').config();
 
@@ -103,6 +104,7 @@ const deleteTask = async (req, res, next) => {
 const updateTask = async (req, res, next) => {
   const { status, description, name, files } = req.body;
   const taskId = req.params.tid;
+  const userId = req.userData.userId;
 
   let task;
   try {
@@ -117,19 +119,77 @@ const updateTask = async (req, res, next) => {
     return next(error);
   }
 
+  let user;
+  try {
+    user = await User.findById(userId);
+  } catch (err) {
+    const error = new HttpError('Something went wrong, could not fetch user.', 500);
+    return next(error);
+  }
+
+  const { name: userName, logoUrl: userLogo } = user;
+
   if (status) {
+    const previousStatus = task.status || '';
+    const actionDescription = `Статус змінено`;
+    task.actions.push({ 
+      description: actionDescription, 
+      timestamp: new Date(), 
+      userId, 
+      name: userName, 
+      userLogo, 
+      field: 'status', 
+      oldValue: previousStatus, 
+      newValue: status 
+    });
     task.status = status;
   }
 
   if (description) {
+    const previousDescription = task.description || '';
+    const actionDescription = `Опис змінено`;
+    task.actions.push({ 
+      description: actionDescription, 
+      timestamp: new Date(), 
+      userId, 
+      name: userName, 
+      userLogo, 
+      field: 'description', 
+      oldValue: previousDescription, 
+      newValue: description 
+    });
     task.description = description;
   }
 
   if (name) {
+    const previousName = task.name || '';
+    const actionDescription = `Ім'я змінено`;
+    task.actions.push({ 
+      description: actionDescription, 
+      timestamp: new Date(), 
+      userId, 
+      name: userName, 
+      userLogo, 
+      field: 'name', 
+      oldValue: previousName, 
+      newValue: name 
+    });
     task.name = name;
   }
 
   if (files && files.length > 0) {
+    const previousFiles = task.files || [];
+    const actionDescription = `Файли оновлено`;
+    task.actions.push({ 
+      description: actionDescription, 
+      timestamp: new Date(), 
+      userId, 
+      name: userName, 
+      userLogo, 
+      field: 'files', 
+      // oldValue: previousFiles, 
+      // newValue: files 
+    });
     task.files = files;
   }
 
