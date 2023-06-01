@@ -5,7 +5,7 @@ const uuid = require('uuid/v1');
 const Project = require('../models/project');
 const User = require('../models/user');
 const ProjectMember = require('../models/project-member');
-const { uploadFile, deleteFile } = require('../services/s3');
+const { uploadFile, deleteFile, uploadFiles } = require('../services/s3');
 const logger = require('../services/logger');
 const mailer = require('../nodemailer');
 
@@ -260,18 +260,8 @@ const updateProject = async (req, res, next) => {
   }
 
   if (files && files.length > 0) {
-    const downloadedFiles = await Promise.all(files.map(async (file) => {
-      const { isUploaded, url } = await uploadFile(file.dataUrl, projectId, file.name);
-
-      if (isUploaded) {
-        return {
-          url: url,
-          name: file.name
-        }
-      }
-    }));
-
-    project.files = project.files.concat(downloadedFiles.filter(file => file !== undefined));
+    const uploadedFiles = await uploadFiles(files, projectId);
+    project.files = project.files.concat(uploadedFiles.filter(file => file !== undefined));
   }
 
   try {
@@ -700,7 +690,7 @@ const updateFilesInProject = async (req, res, next) => {
 
     res.status(200).json({ project: project.toObject({ getters: true }) });
   } catch (err) {
-    console.log(err);
+    logger.info(err);
     res.status(500).json({ message: 'Something went wrong, could not update files in project.' });
   }
 };

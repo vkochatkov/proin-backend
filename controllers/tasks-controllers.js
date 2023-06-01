@@ -5,6 +5,7 @@ const Task = require('../models/task');
 const logger = require('../services/logger');
 const Project = require('../models/project');
 const User = require('../models/user');
+const { uploadFiles } = require('../services/s3');
 
 require('dotenv').config();
 
@@ -105,6 +106,7 @@ const updateTask = async (req, res, next) => {
   const { status, description, name, files } = req.body;
   const taskId = req.params.tid;
   const userId = req.userData.userId;
+  const projectId = req.params.pid;
 
   let task;
   try {
@@ -178,8 +180,10 @@ const updateTask = async (req, res, next) => {
   }
 
   if (files && files.length > 0) {
-    const previousFiles = task.files || [];
-    const actionDescription = `Файли оновлено`;
+    const uploadedFiles = await uploadFiles(files, projectId);
+    task.files = task.files.concat(uploadedFiles.filter(file => file !== undefined));
+    const actionDescription = `Завантажено файл/файли`;
+
     task.actions.push({ 
       description: actionDescription, 
       timestamp: new Date(), 
@@ -190,7 +194,6 @@ const updateTask = async (req, res, next) => {
       // oldValue: previousFiles, 
       // newValue: files 
     });
-    task.files = files;
   }
 
   try {
@@ -227,8 +230,31 @@ const updateTasksByProjectId = async (req, res, next) => {
   res.status(200).json({ message: 'Tasks updated successfully.' });
 }
 
+const updateFilesInTask = async (req, res, next) => {
+  const taskId = req.params.tid;
+  const { files } = req.body;
+
+  try {
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found.' });
+    }
+    
+    task.files = files;
+
+    await task.save();
+
+    res.status(200).json({ task: task.toObject({ getters: true }) });
+  } catch (err) {
+    logger.info(err);
+    res.status(500).json({ message: 'Something went wrong, could not update files in task.' });
+  }
+}
+
 exports.updateTask = updateTask;
 exports.deleteTask = deleteTask;
 exports.createTask = createTask;
 exports.getAllTasksByProjectId = getAllTasksByProjectId;
 exports.updateTasksByProjectId = updateTasksByProjectId;
+exports.updateFilesInTask = updateFilesInTask;

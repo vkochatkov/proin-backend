@@ -12,25 +12,27 @@ const actionSchema = new Schema({
   userLogo: { type: String },
   field: { type: String },
   oldValue: { type: String },
-  newValue: { type: String }
+  newValue: { type: String },
+  id: { type: mongoose.Types.ObjectId, default: function() { return this._id } }
 });
 
 const taskSchema = new Schema({
+  taskId: { type: String },
   timestamp: { type: String },
   projectId: { type: mongoose.Types.ObjectId, ref: 'Project'},
   userId: { type: mongoose.Types.ObjectId, ref: 'User'}, 
   status: {
     type: String,
-    enum: ['new', 'in progress', 'ready', 'canceled'],
+    enum: ['new', 'in progress', 'done', 'canceled'],
     required: true
   },
   description: { type: String },
   name: { type: String },
   files: [{
     name: { type: String }, 
-    url: { type: String }
+    url: { type: String },
+    id: { type: mongoose.Types.ObjectId, default: function() { return this._id } }
   }],
-  taskId: { type: String },
   actions: [actionSchema]
 });
 

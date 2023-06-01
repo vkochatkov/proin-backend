@@ -53,6 +53,23 @@ const uploadFile = async (dataBase64, projectId, filename) => {
   }
 }
 
+const uploadFiles = async (files, projectId) => {
+  return await Promise.all(files.map(async (file) => {
+    const { isUploaded, url } = await uploadFile(
+      file.dataUrl, 
+      projectId, 
+      file.name
+    );
+
+    if (isUploaded) {
+      return {
+        url: url,
+        name: file.name
+      }
+    }
+  }));
+}
+
 const deleteFile = async (url) => {
   const key = url.replace(`${host}/`, '');
   await client.send(
@@ -64,4 +81,5 @@ const deleteFile = async (url) => {
 }
 
 exports.uploadFile = uploadFile;
+exports.uploadFiles = uploadFiles;
 exports.deleteFile = deleteFile;
