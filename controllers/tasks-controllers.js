@@ -230,6 +230,27 @@ const updateTasksByProjectId = async (req, res, next) => {
   res.status(200).json({ message: 'Tasks updated successfully.' });
 }
 
+const updateUserTasks = async (req, res, next) => {
+  const userId = req.userData.userId;
+  const { taskIds } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    user.tasks = taskIds;
+    await user.save();
+
+    res.status(200).json({ message: 'User tasks updated successfully.' });
+  } catch (err) {
+    logger.info(err);
+    res.status(500).json({ message: 'Something went wrong, could not update user tasks.' });
+  }
+};
+
 const updateFilesInTask = async (req, res, next) => {
   const taskId = req.params.tid;
   const { files } = req.body;
@@ -252,9 +273,26 @@ const updateFilesInTask = async (req, res, next) => {
   }
 }
 
+const getAllTasksByUserId = async (req, res, next) => {
+  const userId = req.userData.userId;
+
+  let tasks;
+  try {
+    tasks = await Task.find({ userId });
+  } catch (err) {
+    logger.info(`getAllTasksByUserId error: ${err}`);
+    const error = new HttpError('Fetching tasks failed, please try again.', 500);
+    return next(error);
+  }
+
+  res.json({ tasks: tasks ? tasks : [] });
+};
+
 exports.updateTask = updateTask;
 exports.deleteTask = deleteTask;
 exports.createTask = createTask;
 exports.getAllTasksByProjectId = getAllTasksByProjectId;
 exports.updateTasksByProjectId = updateTasksByProjectId;
 exports.updateFilesInTask = updateFilesInTask;
+exports.getAllTasksByUserId = getAllTasksByUserId;
+exports.updateUserTasks = updateUserTasks;
