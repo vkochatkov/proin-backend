@@ -2,6 +2,16 @@ const mongoose = require('mongoose');
 
 const Schema = mongoose.Schema;
 
+const commentSchema = new Schema({
+  id: { type: String, required: true, unique: true },
+  text: { type: String },
+  timestamp: { type: String },
+  name: { type: String },
+  taskId: { type: mongoose.Types.ObjectId, required: true, ref: 'Task' },
+  userId: { type: mongoose.Types.ObjectId },
+  mentions: [{ type: String }]
+});
+
 const actionSchema = new Schema({
   description: { type: String },
   timestamp: { type: Date, default: Date.now() },
@@ -33,7 +43,8 @@ const taskSchema = new Schema({
     url: { type: String },
     id: { type: mongoose.Types.ObjectId, default: function() { return this._id } }
   }],
-  actions: [actionSchema]
+  actions: [actionSchema],
+  comments: [commentSchema]
 });
 
 module.exports = mongoose.model('Task', taskSchema);
