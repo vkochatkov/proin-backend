@@ -27,7 +27,7 @@ const getAllTasksByProjectId = async (req, res, next) => {
 
   const tasks = project.tasks;
 
-  res.json({ tasks: tasks ? tasks : [] });
+  res.status(200).json({ tasks: tasks ? tasks : [] });
 };
 
 const createTask = async (req, res, next) => {
@@ -52,7 +52,7 @@ const createTask = async (req, res, next) => {
     const user = await User.findById(userId);
     
     await createdTask.save({ session: sess });
-    
+
     project.tasks.unshift(createdTask);
     user.tasks.push(createdTask);
 
@@ -252,7 +252,8 @@ const updateUserTasks = async (req, res, next) => {
     res.status(200).json({ message: 'User tasks updated successfully.' });
   } catch (err) {
     logger.info(err);
-    res.status(500).json({ message: 'Something went wrong, could not update user tasks.' });
+    const error = new HttpError('Something went wrong, could not update tasks.', 500);
+    return next(error);
   }
 };
 
@@ -283,14 +284,15 @@ const getAllTasksByUserId = async (req, res, next) => {
 
   let tasks;
   try {
-    tasks = await Task.find({ userId });
+    const user = await User.findById(userId).populate('tasks');
+    tasks = user.tasks;
   } catch (err) {
     logger.info(`getAllTasksByUserId error: ${err}`);
     const error = new HttpError('Fetching tasks failed, please try again.', 500);
     return next(error);
   }
 
-  res.json({ tasks: tasks ? tasks : [] });
+  res.status(200).json({ tasks: tasks ? tasks : [] });
 };
 
 exports.updateTask = updateTask;

@@ -10,10 +10,10 @@ router.use(checkAuth);
 router.get('/:pid/tasks', tasksControllers.getAllTasksByProjectId);
 router.delete('/:tid', tasksControllers.deleteTask);
 router.post('/:pid/create', tasksControllers.createTask);
+router.post('/user', tasksControllers.updateUserTasks);
+router.get('/all', tasksControllers.getAllTasksByUserId);
 router.post('/:pid', tasksControllers.updateTasksByProjectId);
 router.post('/:pid/tasks/:tid', tasksControllers.updateTask);
 router.post('/task/:tid', tasksControllers.updateFilesInTask);
-router.get('/all', tasksControllers.getAllTasksByUserId);
-router.get('/user', tasksControllers.updateUserTasks);
 
 module.exports = router;
