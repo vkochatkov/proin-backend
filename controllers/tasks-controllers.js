@@ -49,10 +49,15 @@ const createTask = async (req, res, next) => {
     sess.startTransaction();
 
     const project = await Project.findById(projectId);
+    const user = await User.findById(userId);
     
     await createdTask.save({ session: sess });
+    
     project.tasks.unshift(createdTask);
+    user.tasks.push(createdTask);
+
     await project.save({ session: sess });
+    await user.save({ session: sess });
     await sess.commitTransaction();
   } catch (err) {
     logger.info(`createTask POST error: ${err}`)

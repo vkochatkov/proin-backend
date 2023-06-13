@@ -11,7 +11,8 @@ const userSchema = new Schema({
     // required: true 
   },
   projects: [{ type: mongoose.Types.ObjectId, ref: 'Project' }],
-  userLogo: { type: String }
+  userLogo: { type: String },
+  tasks: [{ type: mongoose.Types.ObjectId, ref: 'Task' }]
 });
 
 // userSchema.plugin(uniqueValidator);
