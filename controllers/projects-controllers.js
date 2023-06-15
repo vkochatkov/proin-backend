@@ -308,6 +308,26 @@ const deleteProject = async (req, res, next) => {
   }
 
   try {
+    for (const file of project.files) {
+      await deleteFile(file.url);
+    }
+
+    const logoUrl = project.logoUrl;
+
+    if (logoUrl) {
+      try {
+        await deleteFile(logoUrl);
+      } catch (e) {
+        logger.info(`"DELETE" request failed, message: ${e.message}. status: 500`)
+  
+        const error = new HttpError(
+          e.message,
+          500
+        )
+        return next(error);
+      }
+    }
+
     const sess = await mongoose.startSession();
     sess.startTransaction();
 
@@ -339,22 +359,6 @@ const deleteProject = async (req, res, next) => {
     );
     logger.info(`POST deleteProject ${err}`);
     return next(error);
-  }
-
-  const logoUrl = project.logoUrl;
-
-  if (logoUrl) {
-    try {
-      await deleteFile(logoUrl);
-    } catch (e) {
-      logger.info(`"DELETE" request failed, message: ${e.message}. status: 500`)
-
-      const error = new HttpError(
-        e.message,
-        500
-      )
-      return next(error);
-    }
   }
 
   res.status(200).json({ message: 'Deleted project.' });
