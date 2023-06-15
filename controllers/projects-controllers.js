@@ -233,6 +233,12 @@ const updateProject = async (req, res, next) => {
   const project = await findProject(projectId);
 
   if (logoUrl) {
+    const projectLogoUrl = project.logoUrl;
+
+    if (projectLogoUrl) {
+      await deleteFile(projectLogoUrl);
+    }
+
     const generatedName = uuid();
     const filename = `${generatedName}.jpg`;
     const { isUploaded, url } = await uploadFile(logoUrl, projectId, filename);
