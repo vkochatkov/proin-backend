@@ -108,10 +108,9 @@ const deleteTask = async (req, res, next) => {
 };
 
 const updateTask = async (req, res, next) => {
-  const { status, description, name, files } = req.body;
+  const { status, description, name, files, projectId } = req.body;
   const taskId = req.params.tid;
   const userId = req.userData.userId;
-  const projectId = req.params.pid;
 
   let task;
   try {
@@ -184,7 +183,7 @@ const updateTask = async (req, res, next) => {
     task.name = name;
   }
 
-  if (files && files.length > 0) {
+  if (projectId && files && files.length > 0) {
     const uploadedFiles = await uploadFiles(files, projectId);
     task.files = task.files.concat(uploadedFiles.filter(file => file !== undefined));
     const actionDescription = `Завантажено файл/файли`;
@@ -243,7 +242,8 @@ const updateUserTasks = async (req, res, next) => {
     const user = await User.findById(userId);
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
+      const error = new HttpError('Something went wrong, could not find user', 404);
+      return next(error);
     }
 
     user.tasks = taskIds;
