@@ -70,6 +70,7 @@ const createTask = async (req, res, next) => {
 
 const deleteTask = async (req, res, next) => {
   const taskId = req.params.tid;
+  const userId = req.userData.userId;
 
   let task;
   try {
@@ -90,11 +91,15 @@ const deleteTask = async (req, res, next) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
-    await task.remove({ session });
-
     const project = await Project.findById(task.projectId).session(session);
     project.tasks.pull(task._id); // Remove the task from the project's tasks array
     await project.save({ session });
+
+    const user = await User.findById(userId).session(session);
+    user.tasks.pull(task._id); // Remove the task from the user's tasks array
+    await user.save({ session });
+
+    await task.remove({ session });
 
     await session.commitTransaction();
     session.endSession();

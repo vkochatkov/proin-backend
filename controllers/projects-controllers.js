@@ -289,12 +289,9 @@ const deleteProject = async (req, res, next) => {
 
   let project;
   try {
-    project = await Project.findById(projectId).populate('creator');
+    project = await Project.findById(projectId).populate('creator').populate('tasks');
   } catch (err) {
-    const error = new HttpError(
-      'Something went wrong, could not delete project.',
-      500
-    );
+    const error = new HttpError('Something went wrong, could not delete project.', 500);
     logger.info(`POST deleteProject ${error}`);
     return next(error);
   }
@@ -305,10 +302,7 @@ const deleteProject = async (req, res, next) => {
   }
 
   if (project.creator.id !== req.userData.userId) {
-    const error = new HttpError(
-      'You are not allowed to delete this project.',
-      401
-    );
+    const error = new HttpError('You are not allowed to delete this project.', 401);
     logger.info(`POST deleteProject ${error}`);
     return next(error);
   }
@@ -324,12 +318,9 @@ const deleteProject = async (req, res, next) => {
       try {
         await deleteFile(logoUrl);
       } catch (e) {
-        logger.info(`"DELETE" request failed, message: ${e.message}. status: 500`)
-  
-        const error = new HttpError(
-          e.message,
-          500
-        )
+        logger.info(`"DELETE" request failed, message: ${e.message}. status: 500`);
+
+        const error = new HttpError(e.message, 500);
         return next(error);
       }
     }
@@ -343,15 +334,25 @@ const deleteProject = async (req, res, next) => {
       await parentProject.save({ session: sess });
     }
 
-    await project.remove({ session: sess });
+    // Remove tasks associated with the project
+    for (const task of project.tasks) {
+      await task.remove({ session: sess });
+
+      // Remove the task from the user's tasks array
+      const user = await User.findById(task.userId).session(sess);
+      user.tasks.pull(task);
+      await user.save({ session: sess });
+    }
+
+    // Remove project from the creator's projects array
     project.creator.projects.pull(project);
     await project.creator.save({ session: sess });
+
+    await project.remove({ session: sess });
+
     await sess.commitTransaction();
   } catch (err) {
-    const error = new HttpError(
-      'Something went wrong, could not delete project.',
-      500
-    );
+    const error = new HttpError('Something went wrong, could not delete project.', 500);
     logger.info(`POST deleteProject ${err}`);
     return next(error);
   }
@@ -359,10 +360,7 @@ const deleteProject = async (req, res, next) => {
   try {
     await ProjectMember.deleteMany({ projectId: projectId }).exec();
   } catch (err) {
-    const error = new HttpError(
-      'Something went wrong, could not remove project member.',
-      500
-    );
+    const error = new HttpError('Something went wrong, could not remove project member.', 500);
     logger.info(`POST deleteProject ${err}`);
     return next(error);
   }
