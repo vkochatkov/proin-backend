@@ -14,6 +14,6 @@ router.post('/:pid/create', tasksControllers.createTask);
 router.post('/user', tasksControllers.updateUserTasks);
 router.get('/all', tasksControllers.getAllTasksByUserId);
 router.post('/:pid', tasksControllers.updateTasksByProjectId);
-router.post('/task/:tid', tasksControllers.updateFilesInTask);
+router.post('/files/:tid', tasksControllers.updateFilesInTask);
 
 module.exports = router;
