@@ -15,5 +15,6 @@ router.post('/user', tasksControllers.updateUserTasks);
 router.get('/all', tasksControllers.getAllTasksByUserId);
 router.post('/:pid', tasksControllers.updateTasksByProjectId);
 router.post('/files/:tid', tasksControllers.updateFilesInTask);
+router.post('/:tid/comment', tasksControllers.createComment);
 
 module.exports = router;

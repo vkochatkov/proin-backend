@@ -113,7 +113,15 @@ const deleteTask = async (req, res, next) => {
 };
 
 const updateTask = async (req, res, next) => {
-  const { status, description, name, files, projectId } = req.body;
+  const { 
+    status, 
+    description, 
+    name, 
+    files, 
+    projectId, 
+    comment, 
+    comments 
+  } = req.body;
   const taskId = req.params.tid;
   const userId = req.userData.userId;
 
@@ -203,6 +211,24 @@ const updateTask = async (req, res, next) => {
       // oldValue: previousFiles, 
       // newValue: files 
     });
+  }
+
+  if (comments && comment) {
+    const oldComment = task.comments.find(c => c._id.toString() === comment._id);
+    const previousCommentValue = oldComment.text || '';
+    const actionDescription = 'Коментар змінено';
+
+    task.actions.push({ 
+      description: actionDescription, 
+      timestamp: new Date(), 
+      userId, 
+      name: userName, 
+      userLogo, 
+      field: 'name', 
+      oldValue: previousCommentValue, 
+      newValue: comment.text 
+    });
+    task.comments = comments;
   }
 
   try {
@@ -300,6 +326,61 @@ const getAllTasksByUserId = async (req, res, next) => {
   res.status(200).json({ tasks: tasks ? tasks : [] });
 };
 
+const createComment = async (req, res, next) => {
+  const { comment: { taskId, text, userId, mentions, timestamp, name } } = req.body;
+
+  let task;
+  try {
+    task = await Task.findById(taskId);
+  } catch (err) {
+    logger.info(`Failed to find the task in createComment. Message: ${err.message}`)
+    const error = new HttpError('Failed to find the task.', 500);
+    return next(error);
+  }
+
+  if (!task) {
+    const error = new HttpError('Task not found.', 404);
+    return next(error);
+  }
+
+  const comment = {
+    id: new mongoose.Types.ObjectId().toString(),
+    text,
+    timestamp,
+    taskId,
+    userId,
+    mentions,
+    name
+  };
+
+  task.comments.unshift(comment);
+
+  const user = await User.findById(userId);
+  const { name: userName, logoUrl: userLogo } = user;
+
+  const action = {
+    description: 'Cтворено коментар',
+    timestamp: new Date(),
+    userId,
+    name: userName,
+    userLogo,
+    field: 'comment',
+    // oldValue: actionOldValue,
+    newValue: text,
+  };
+
+  task.actions.push(action);
+
+  try {
+    await task.save();
+  } catch (err) {
+    const error = new HttpError('Failed to create the comment.', 500);
+    return next(error);
+  }
+
+  res.status(201).json({ comment });
+};
+
 exports.updateTask = updateTask;
 exports.deleteTask = deleteTask;
 exports.createTask = createTask;
@@ -308,3 +389,4 @@ exports.updateTasksByProjectId = updateTasksByProjectId;
 exports.updateFilesInTask = updateFilesInTask;
 exports.getAllTasksByUserId = getAllTasksByUserId;
 exports.updateUserTasks = updateUserTasks;
+exports.createComment = createComment;
