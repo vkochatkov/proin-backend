@@ -344,7 +344,6 @@ const createComment = async (req, res, next) => {
   }
 
   const comment = {
-    id: new mongoose.Types.ObjectId().toString(),
     text,
     timestamp,
     taskId,
@@ -378,7 +377,9 @@ const createComment = async (req, res, next) => {
     return next(error);
   }
 
-  res.status(201).json({ comment });
+  task.comments = task.comments.map(c => c.id = c._id.toString())
+
+  res.status(201).json({ task });
 };
 
 exports.updateTask = updateTask;
