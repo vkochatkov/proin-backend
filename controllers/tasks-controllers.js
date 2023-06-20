@@ -372,15 +372,82 @@ const createComment = async (req, res, next) => {
 
   try {
     await task.save();
+    
+    task.comments.forEach((c) => {
+      c.id = c._id.toString(); 
+    });
+
+    await task.save();
   } catch (err) {
+    logger.info(err.message);
     const error = new HttpError('Failed to create the comment.', 500);
+    return next(error);
+  }
+
+  res.status(201).json({ task });
+};
+
+const deleteComment = async (req, res, next) => {
+  const { tid, cid } = req.params;
+  const userId = req.userData.userId;
+
+  let task;
+  try {
+    task = await Task.findById(tid);
+  } catch (err) {
+    const error = new HttpError('Failed to find the task.', 500);
+    return next(error);
+  }
+
+  if (!task) {
+    const error = new HttpError('Task not found.', 404);
+    return next(error);
+  }
+
+  const commentIndex = task.comments.findIndex((comment) => comment._id.toString() === cid);
+  const oldComment = task.comments.find(comment => comment._id.toString() === cid);
+
+  if (commentIndex === -1) {
+    const error = new HttpError('Comment not found.', 404);
+    return next(error);
+  }
+
+  task.comments.splice(commentIndex, 1);
+
+  let user;
+  try {
+    user = await User.findById(userId);
+  } catch (e) {
+    const error = new HttpError('Failed to find the user in delete task comment.', 500);
+    return next(error);
+  }
+
+  const { name: userName } = user;
+
+  const action = {
+    description: 'Комент видалено',
+    timestamp: new Date(),
+    userId: req.userData.userId,
+    name: userName,
+    userLogo: req.userData.userLogo ? req.userData.userLogo : '',
+    field: 'comments',
+    oldValue: oldComment.text,
+    newValue: '',
+  };
+
+  task.actions.push(action);
+
+  try {
+    await task.save();
+  } catch (err) {
+    const error = new HttpError('Failed to delete the comment.', 500);
     return next(error);
   }
 
   task.comments = task.comments.map(c => c.id = c._id.toString())
 
-  res.status(201).json({ task });
-};
+  res.status(200).json({ task });
+};  
 
 exports.updateTask = updateTask;
 exports.deleteTask = deleteTask;
@@ -391,3 +458,4 @@ exports.updateFilesInTask = updateFilesInTask;
 exports.getAllTasksByUserId = getAllTasksByUserId;
 exports.updateUserTasks = updateUserTasks;
 exports.createComment = createComment;
+exports.deleteComment = deleteComment;
