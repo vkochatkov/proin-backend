@@ -394,7 +394,8 @@ const deleteComment = async (req, res, next) => {
   let task;
   try {
     task = await Task.findById(tid);
-  } catch (err) {
+  } catch (e) {
+    logger.info(`error in deleteComment. Message: ${e.message}`);
     const error = new HttpError('Failed to find the task.', 500);
     return next(error);
   }
@@ -418,6 +419,7 @@ const deleteComment = async (req, res, next) => {
   try {
     user = await User.findById(userId);
   } catch (e) {
+    logger.info(`error in deleteComment. Message: ${e.message}`);
     const error = new HttpError('Failed to find the user in delete task comment.', 500);
     return next(error);
   }
