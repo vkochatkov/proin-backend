@@ -10,6 +10,7 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 
 const tasksRoutes = require('./routes/tasks-routes');
+const transactionsRoutes = require('./routes/transactions-routes');
 const usersRoutes = require('./routes/users-routes');
 const projectsRoutes = require('./routes/projects-routes');
 const commentsRoutes = require('./routes/comments-routes');
@@ -36,6 +37,7 @@ app.use('/projects', projectsRoutes);
 app.use('/projects', commentsRoutes);
 app.use('/users', usersRoutes);
 app.use('/project-members', projectMembersRoutes);
+app.use('/transactions-list', transactionsRoutes);
 
 app.use((req, res, next) => {
   const error = new HttpError('Could not find this route.', 404);

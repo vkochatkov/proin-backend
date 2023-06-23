@@ -446,8 +446,6 @@ const deleteComment = async (req, res, next) => {
     return next(error);
   }
 
-  task.comments = task.comments.map(c => c.id = c._id.toString())
-
   res.status(200).json({ task });
 };  
 

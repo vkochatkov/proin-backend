@@ -8,11 +8,11 @@ const userSchema = new Schema({
   password: { type: String, required: true, minlength: 6 },
   name: { 
     type: String, 
-    // required: true 
   },
   projects: [{ type: mongoose.Types.ObjectId, ref: 'Project' }],
   userLogo: { type: String },
-  tasks: [{ type: mongoose.Types.ObjectId, ref: 'Task' }]
+  tasks: [{ type: mongoose.Types.ObjectId, ref: 'Task' }],
+  transactions: [{ type: mongoose.Types.ObjectId, ref: 'Transaction'}]
 });
 
 // userSchema.plugin(uniqueValidator);
