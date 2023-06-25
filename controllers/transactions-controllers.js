@@ -13,6 +13,7 @@ const getProjectTransactions = (req, res, next) => {
 const createTransaction = async (req, res, next) => {
   const { projectId, timestamp } = req.body;
   const userId = req.userData.userId;
+  const classifiers = ['Обід', 'Проїзд', 'Житло'];
 
   const createdTransaction = new Transaction({
     description: '',
@@ -23,7 +24,8 @@ const createTransaction = async (req, res, next) => {
     id: '',
     timestamp: '',
     type: '',
-    timestamp
+    timestamp,
+    classifiers
   });
 
   try {
@@ -63,7 +65,8 @@ const updateTransaction = async (req, res, next) => {
     projectId, 
     sum, 
     classifier, 
-    type 
+    type,
+    classifiers
   } = req.body;
 
   let transaction;
@@ -89,6 +92,10 @@ const updateTransaction = async (req, res, next) => {
 
   if (classifier) {
     transaction.classifier = classifier;
+  }
+
+  if (classifiers) {
+    transaction.classifiers = classifiers;
   }
 
   if (type) {

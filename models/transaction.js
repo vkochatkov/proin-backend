@@ -11,6 +11,7 @@ const transactionSchema = new Schema({
   id: { type: String },
   timestamp: { type: String },
   type: { type: String },
+  classifiers: [String]
 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);
