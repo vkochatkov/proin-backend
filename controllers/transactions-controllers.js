@@ -57,10 +57,10 @@ const createTransaction = async (req, res, next) => {
 
 const updateTransaction = async (req, res, next) => {
   const transactionId = req.params.id;
+  const userId = req.userData.userId;
   const { 
     description, 
     projectId, 
-    userId, 
     sum, 
     classifier, 
     type 
@@ -111,7 +111,6 @@ const updateTransaction = async (req, res, next) => {
     await user.save({ session });
 
     await session.commitTransaction();
-    session.endSession();
   } catch (err) {
     const error = new HttpError('Something went wrong, could not update transaction.', 500);
     return next(error);
