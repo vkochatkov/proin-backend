@@ -6,8 +6,56 @@ const logger = require('../services/logger');
 const Project = require('../models/project');
 const User = require('../models/user');
 
-const getProjectTransactions = (req, res, next) => {
+const getProjectTransactions = async (req, res, next) => {
+  const projectId = req.params.pid;
 
+  let project;
+  try {
+    project = await Project.findById(projectId).populate('transactions');
+  } catch (err) {
+    logger.info(`error at the getProjectTransactions. Message: ${err.message}`);
+    const error = new HttpError(
+      'Something went wrong, could not fetch project transactions.',
+      500
+    );
+    return next(error);
+  }
+
+  if (!project) {
+    const error = new HttpError(
+      'Could not find project for the provided id.',
+      404
+    );
+    return next(error);
+  }
+
+  res.json({ transactions: project.transactions });
+};
+
+const getTransactionById = async (req, res, next) => {
+  const transactionId = req.params.id;
+
+  let transaction;
+  try {
+    transaction = await Transaction.findById(transactionId);
+  } catch (err) {
+    logger.info(`error at the getTransactionById. Message: ${err.message}`);
+    const error = new HttpError(
+      'Something went wrong, could not fetch transaction.',
+      500
+    );
+    return next(error);
+  }
+
+  if (!transaction) {
+    const error = new HttpError(
+      'Could not find transaction for the provided id.',
+      404
+    );
+    return next(error);
+  }
+
+  res.json({ transaction });
 };
 
 const createTransaction = async (req, res, next) => {
@@ -49,13 +97,13 @@ const createTransaction = async (req, res, next) => {
 
     await session.commitTransaction();
   } catch (err) {
+    logger.info(`error at createTransaction, message: ${err.message}`)
     const error = new HttpError('Creating transaction failed, please try again.', 500);
     return next(error);
   }
 
   res.status(201).json({ transaction: createdTransaction });
 };
-
 
 const updateTransaction = async (req, res, next) => {
   const transactionId = req.params.id;
@@ -106,19 +154,46 @@ const updateTransaction = async (req, res, next) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
+    transaction.increment();
+
     await transaction.save({ session });
 
     const project = await Project.findById(projectId);
-    project.transactions.push(transaction);
+
+    if (!project) {
+        const error = new HttpError('Could not find project for the provided id.', 404);
+        return next(error);
+      }
+
+    const projectTransactionIndex = project.transactions.findIndex(
+      (projTransaction) => projTransaction._id.toString() === transactionId
+    );
+
+    if (projectTransactionIndex !== -1) {
+      project.transactions.set(projectTransactionIndex, transaction);
+    }
 
     const user = await User.findById(userId);
-    user.transactions.push(transaction);
+    
+    if (!user) {
+      const error = new HttpError('Could not find user for the provided id.', 404);
+      return next(error);
+    }
+
+    const userTransactionIndex = user.transactions.findIndex(
+      (usrTransaction) => usrTransaction._id.toString() === transactionId
+    );
+
+    if (userTransactionIndex !== -1) {
+      user.transactions.set(userTransactionIndex, transaction);
+    }
 
     await project.save({ session });
     await user.save({ session });
 
     await session.commitTransaction();
   } catch (err) {
+    logger.info(`error at updateTransaction, message: ${err.message}`);
     const error = new HttpError('Something went wrong, could not update transaction.', 500);
     return next(error);
   }
@@ -161,6 +236,7 @@ const deleteTransaction = async (req, res, next) => {
     await session.commitTransaction();
     session.endSession();
   } catch (err) {
+    logger.info(`error at deleteTransaction, message: ${err.message}`);
     const error = new HttpError('Something went wrong, could not delete transaction.', 500);
     return next(error);
   }
@@ -171,3 +247,5 @@ const deleteTransaction = async (req, res, next) => {
 exports.createTransaction = createTransaction;
 exports.updateTransaction = updateTransaction;
 exports.deleteTransaction = deleteTransaction;
+exports.getTransactionById = getTransactionById;
+exports.getProjectTransactions = getProjectTransactions;
