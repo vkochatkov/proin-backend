@@ -244,8 +244,33 @@ const deleteTransaction = async (req, res, next) => {
   res.status(200).json({ message: 'Transaction deleted successfully.' });
 };
 
+const updateTransactionsByProjectId = async (req, res, next) => {
+  const projectId = req.params.pid;
+  const { transactions } = req.body;
+
+  try {
+    const project = await Project.findById(projectId);
+
+    if (!project) {
+      const error = new HttpError('Something went wrong, could not find project', 404);
+      return next(error);
+    }
+
+    project.transactions = transactions;
+
+    await project.save();
+  } catch (err) {
+    logger.info(`updateTransactionsByProjectId: ${err}`);
+    const error = new HttpError('Something went wrong, could not update transactions.', 500);
+    return next(error);
+  }
+
+  res.status(200).json({ message: 'Transactions updated successfully.' });
+};
+
 exports.createTransaction = createTransaction;
 exports.updateTransaction = updateTransaction;
 exports.deleteTransaction = deleteTransaction;
 exports.getTransactionById = getTransactionById;
 exports.getProjectTransactions = getProjectTransactions;
+exports.updateTransactionsByProjectId = updateTransactionsByProjectId;
