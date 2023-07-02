@@ -203,7 +203,7 @@ const updateTransaction = async (req, res, next) => {
 
 const deleteTransaction = async (req, res, next) => {
   const transactionId = req.params.id;
-  const { projectId, userId } = req.body;
+  const userId = req.userData.userId;
 
   let transaction;
   try {
@@ -224,7 +224,7 @@ const deleteTransaction = async (req, res, next) => {
 
     await transaction.remove({ session });
 
-    const project = await Project.findById(projectId).session(session);
+    const project = await Project.findById(transaction.projectId).session(session);
     project.transactions.pull(transactionId);
 
     const user = await User.findById(userId).session(session);
