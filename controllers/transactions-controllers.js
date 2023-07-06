@@ -32,6 +32,31 @@ const getProjectTransactions = async (req, res, next) => {
   res.json({ transactions: project.transactions });
 };
 
+const getUserTransactions = async (req, res, next) => {
+  const userId = req.userData.userId;
+
+  let user;
+  try {
+    user = await User.findById(userId).populate('transactions');
+  } catch (err) {
+    const error = new HttpError(
+      'Something went wrong, could not fetch user transactions.',
+      500
+    );
+    return next(error);
+  }
+
+  if (!user) {
+    const error = new HttpError(
+      'Could not find user for the provided id.',
+      404
+    );
+    return next(error);
+  }
+
+  res.json({ transactions: user.transactions });
+};
+
 const getTransactionById = async (req, res, next) => {
   const transactionId = req.params.id;
 
@@ -268,9 +293,35 @@ const updateTransactionsByProjectId = async (req, res, next) => {
   res.status(200).json({ message: 'Transactions updated successfully.' });
 };
 
+const updateUserTransactionsById = async (req, res, next) => {
+  const userId = req.params.uid;
+  const { transactions } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      const error = new HttpError('Something went wrong, could not find user', 404);
+      return next(error);
+    }
+
+    user.transactions = transactions;
+
+    await user.save();
+  } catch (err) {
+    logger.info(`updateUserTransactionsById: ${err}`);
+    const error = new HttpError('Something went wrong, could not update transactions.', 500);
+    return next(error);
+  }
+
+  res.status(200).json({ message: 'Transactions updated successfully.' });
+};
+
 exports.createTransaction = createTransaction;
 exports.updateTransaction = updateTransaction;
 exports.deleteTransaction = deleteTransaction;
 exports.getTransactionById = getTransactionById;
 exports.getProjectTransactions = getProjectTransactions;
 exports.updateTransactionsByProjectId = updateTransactionsByProjectId;
+exports.getUserTransactions = getUserTransactions;
+exports.updateUserTransactionsById = updateUserTransactionsById;
