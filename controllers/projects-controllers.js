@@ -85,24 +85,31 @@ const getUsersProjects = async (req, res, next) => {
 
   let projects;
   try {
-    const userWithProjects = await User.findById(userId).populate({
-      path: 'projects',
-      populate: [
-        {
-          path: 'comments'
-        },
-        {
-          path: 'subProjects',
-          populate: {
+    const userWithProjects = await User.findById(userId)
+      .populate({
+        path: 'projects',
+        populate: [
+          {
             path: 'comments'
+          },
+          {
+            path: 'transactions'
+          },
+          {
+            path: 'subProjects',
+            populate: {
+              path: 'comments'
+            }
           }
-        }
-      ]
-    });
+        ]
+      });
 
     const memberProjects = await Project.find({ sharedWith: userId })
       .populate({
         path: 'comments',
+      })
+      .populate({
+        path: 'transactions'
       })
       .populate({
         path: 'subProjects',

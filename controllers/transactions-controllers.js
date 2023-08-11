@@ -5,6 +5,8 @@ const Transaction = require('../models/transaction');
 const logger = require('../services/logger');
 const Project = require('../models/project');
 const User = require('../models/user');
+const transactionUtils = require('../services/transaction-utils');
+
 
 const getProjectTransactions = async (req, res, next) => {
   const projectId = req.params.pid;
@@ -86,7 +88,22 @@ const getTransactionById = async (req, res, next) => {
 const createTransaction = async (req, res, next) => {
   const { projectId, timestamp } = req.body;
   const userId = req.userData.userId;
-  const classifiers = ['Обід', 'Проїзд', 'Житло'];
+
+  let project;
+    
+  try {
+    project = await Project.findById(projectId);
+  } catch (e) {
+    const error = new HttpError('Something went wrong, could not update transaction.', 500);
+    return next(error);
+  }
+
+  if (!project) {
+    const error = new HttpError('Could not find project for the provided id.', 404);
+    return next(error);
+  }
+
+  const classifiers = project.classifiers;
 
   const createdTransaction = new Transaction({
     description: '',
@@ -168,7 +185,7 @@ const updateTransaction = async (req, res, next) => {
   }
 
   if (classifiers) {
-    transaction.classifiers = classifiers;
+    await transactionUtils.updateClassifiers(projectId, classifiers);
   }
 
   if (type) {
