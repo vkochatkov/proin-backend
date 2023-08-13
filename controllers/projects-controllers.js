@@ -282,10 +282,10 @@ const updateProject = async (req, res, next) => {
     const oldClassifiers = project.classifiers;
     project.classifiers = classifiers;
 
-    if (JSON.stringify(oldClassifiers) !== JSON.stringify(classifiers)) {
-      if (oldClassifiers.length === classifiers.length) {
+    const removedClassifier = oldClassifiers
+      .filter(classifier => !classifiers.includes(classifier))[0];
 
-      }
+    if (JSON.stringify(oldClassifiers) !== JSON.stringify(classifiers)) {
       const transactionsToUpdate = await Transaction.find({ projectId });
 
       transactionsToUpdate.forEach(async (transaction) => {
@@ -295,9 +295,11 @@ const updateProject = async (req, res, next) => {
           if (oldClassifiers.length === classifiers.length) {
             transaction.classifier = classifiers[oldClassifierIndex]; // Update transaction classifier
           }
+        }
 
+        if (oldClassifierIndex !== -1 && transaction.classifier === removedClassifier) {
           if (oldClassifiers.length >= classifiers.length) {
-            transaction.classifier = ''
+            transaction.classifier = '';
           }
         }
 
