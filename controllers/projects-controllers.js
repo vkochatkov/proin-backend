@@ -283,13 +283,22 @@ const updateProject = async (req, res, next) => {
     project.classifiers = classifiers;
 
     if (JSON.stringify(oldClassifiers) !== JSON.stringify(classifiers)) {
+      if (oldClassifiers.length === classifiers.length) {
+
+      }
       const transactionsToUpdate = await Transaction.find({ projectId });
 
       transactionsToUpdate.forEach(async (transaction) => {
         const oldClassifierIndex = oldClassifiers.indexOf(transaction.classifier);
         
         if (oldClassifierIndex !== -1 && transaction.classifier !== classifiers[oldClassifierIndex]) {
-          transaction.classifier = classifiers[oldClassifierIndex]; // Update transaction classifier
+          if (oldClassifiers.length === classifiers.length) {
+            transaction.classifier = classifiers[oldClassifierIndex]; // Update transaction classifier
+          }
+
+          if (oldClassifiers.length >= classifiers.length) {
+            transaction.classifier = ''
+          }
         }
 
         transaction.classifiers = classifiers; // Update transaction classifiers array
