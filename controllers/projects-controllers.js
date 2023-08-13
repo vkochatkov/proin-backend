@@ -5,6 +5,7 @@ const uuid = require('uuid/v1');
 const Project = require('../models/project');
 const User = require('../models/user');
 const ProjectMember = require('../models/project-member');
+const Transaction = require('../models/transaction');
 const { uploadFile, deleteFile, uploadFiles } = require('../services/s3');
 const logger = require('../services/logger');
 const mailer = require('../nodemailer');
@@ -234,7 +235,7 @@ const createProject = async (req, res, next) => {
 
 const updateProject = async (req, res, next) => {
   logger.info(`"PATCH" update project request to "${req.protocol}://${req.get('host')}/projects/:uid" `)
-  const { projectName, description, logoUrl, subProjects, files } = req.body;
+  const { projectName, description, logoUrl, subProjects, files, classifiers } = req.body;
   const projectId = req.params.pid;
 
   const project = await findProject(projectId);
@@ -275,6 +276,27 @@ const updateProject = async (req, res, next) => {
   if (files && files.length > 0) {
     const uploadedFiles = await uploadFiles(files, projectId);
     project.files = project.files.concat(uploadedFiles.filter(file => file !== undefined));
+  }
+
+  if (classifiers && classifiers.length > 0) {
+    const oldClassifiers = project.classifiers;
+    project.classifiers = classifiers;
+
+    if (JSON.stringify(oldClassifiers) !== JSON.stringify(classifiers)) {
+      const transactionsToUpdate = await Transaction.find({ projectId });
+
+      transactionsToUpdate.forEach(async (transaction) => {
+        const oldClassifierIndex = oldClassifiers.indexOf(transaction.classifier);
+        
+        if (oldClassifierIndex !== -1 && transaction.classifier !== classifiers[oldClassifierIndex]) {
+          transaction.classifier = classifiers[oldClassifierIndex]; // Update transaction classifier
+        }
+
+        transaction.classifiers = classifiers; // Update transaction classifiers array
+
+        await transaction.save();
+      });
+    }
   }
 
   try {
