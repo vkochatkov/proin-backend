@@ -4,23 +4,23 @@ const HttpError = require('../models/http-error');
 
 const logger = require('../services/logger');
 
-const updateClassifiers = async (projectId, classifiers) => {
+const updateClassifiers = async (projectId, classifiers, type) => {
   try {
     const project = await Project.findById(projectId);
     if (!project) {
       throw new HttpError('Project not found', 404);
     }
 
-    project.classifiers = classifiers;
+    project.classifiers[type] = classifiers;
 
     await project.save();
 
     await Transaction.updateMany(
-      { projectId },
+      { projectId, type },
       { $set: { classifiers } }
     );
   } catch (err) {
-    logger.info(err.message);
+    logger.info(`updateClassifiers: ${err.message}`);
     throw new HttpError('Could not update classifiers', 500);
   }
 };

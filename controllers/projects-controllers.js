@@ -197,7 +197,7 @@ const updateProjectsByUserId = async (req, res, next) => {
 
 const createProject = async (req, res, next) => {
   const createdProject = new Project({
-    creator: req.userData.userId
+    creator: req.userData.userId,
   });
 
   let user;
@@ -235,7 +235,15 @@ const createProject = async (req, res, next) => {
 
 const updateProject = async (req, res, next) => {
   logger.info(`"PATCH" update project request to "${req.protocol}://${req.get('host')}/projects/:uid" `)
-  const { projectName, description, logoUrl, subProjects, files, classifiers } = req.body;
+  const { 
+    projectName, 
+    description, 
+    logoUrl, 
+    subProjects, 
+    files, 
+    classifiers, 
+    classifierType
+  } = req.body;
   const projectId = req.params.pid;
 
   const project = await findProject(projectId);
@@ -278,35 +286,52 @@ const updateProject = async (req, res, next) => {
     project.files = project.files.concat(uploadedFiles.filter(file => file !== undefined));
   }
 
-  if (classifiers && classifiers.length > 0) {
-    const oldClassifiers = project.classifiers;
-    project.classifiers = classifiers;
-
-    const removedClassifier = oldClassifiers
+  if (classifiers && classifierType && classifiers.length > 0) {
+    const oldClassifiers = JSON.parse(JSON.stringify(project.classifiers)); // Get the existing project classifiers
+  
+    project.classifiers = {
+      ...oldClassifiers,
+      [classifierType]: [...classifiers]
+    };
+  
+    const removedClassifier = oldClassifiers[classifierType]
       .filter(classifier => !classifiers.includes(classifier))[0];
-
-    if (JSON.stringify(oldClassifiers) !== JSON.stringify(classifiers)) {
+  
+    if (JSON.stringify(oldClassifiers[classifierType]) !== JSON.stringify(classifiers)) {
       const transactionsToUpdate = await Transaction.find({ projectId });
-
-      transactionsToUpdate.forEach(async (transaction) => {
-        const oldClassifierIndex = oldClassifiers.indexOf(transaction.classifier);
+  
+      for (const transaction of transactionsToUpdate) {
+        const oldClassifierIndex = oldClassifiers[classifierType]
+          .indexOf(transaction.classifier);
         
-        if (oldClassifierIndex !== -1 && transaction.classifier !== classifiers[oldClassifierIndex]) {
-          if (oldClassifiers.length === classifiers.length) {
+        if (oldClassifierIndex !== -1 
+          && transaction.classifier !== classifiers[oldClassifierIndex]) {
+          if (oldClassifiers[classifierType].length === classifiers.length) {
             transaction.classifier = classifiers[oldClassifierIndex]; // Update transaction classifier
           }
         }
-
+  
         if (oldClassifierIndex !== -1 && transaction.classifier === removedClassifier) {
-          if (oldClassifiers.length >= classifiers.length) {
+          if (oldClassifiers[classifierType].length >= classifiers.length) {
             transaction.classifier = '';
           }
         }
-
-        transaction.classifiers = classifiers; // Update transaction classifiers array
-
-        await transaction.save();
-      });
+  
+        if (transaction.type === classifierType) {
+          transaction.classifiers = classifiers; 
+        }
+        
+        try {
+          await transaction.save();
+        } catch (err) {
+          logger.info(`transaction saving error in updateProject: ${err}`);
+          const error = new HttpError(
+            'Something went wrong, could not update transaction.',
+            500
+          );
+          return next(error);
+        }
+      }
     }
   }
 

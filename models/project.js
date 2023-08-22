@@ -21,7 +21,11 @@ const projectSchema = new Schema({
   }],
   tasks: [{ type: mongoose.Types.ObjectId, ref: 'Task' }],
   transactions: [{ type: mongoose.Types.ObjectId, ref: 'Transaction'}],
-  classifiers: [String]
+  classifiers: { 
+    income: [String],
+    expenses: [String],
+    transfer: [String],
+  }
 });
 
 module.exports = mongoose.model('Project', projectSchema);
