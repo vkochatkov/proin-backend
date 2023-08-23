@@ -11,7 +11,11 @@ const transactionSchema = new Schema({
   id: { type: String },
   timestamp: { type: String },
   type: { type: String },
-  classifiers: [String]
+  classifiers: { 
+    income: [String],
+    expenses: [String],
+    transfer: [String],
+  }
 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

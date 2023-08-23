@@ -318,7 +318,7 @@ const updateProject = async (req, res, next) => {
         }
   
         if (transaction.type === classifierType) {
-          transaction.classifiers = classifiers; 
+          transaction.classifiers[classifierType] = classifiers; 
         }
         
         try {
