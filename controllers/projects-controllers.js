@@ -286,7 +286,7 @@ const updateProject = async (req, res, next) => {
     project.files = project.files.concat(uploadedFiles.filter(file => file !== undefined));
   }
 
-  if (classifiers && classifierType && classifiers.length > 0) {
+  if (classifiers && classifierType && Array.isArray(classifiers)) {
     const oldClassifiers = JSON.parse(JSON.stringify(project.classifiers)); // Get the existing project classifiers
   
     project.classifiers = {
