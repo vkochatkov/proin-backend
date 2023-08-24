@@ -184,11 +184,11 @@ const updateTransaction = async (req, res, next) => {
     transaction.classifier = classifier;
   }
 
-  if (classifiers && type) {
-    await transactionUtils.updateClassifiers(projectId, classifiers, type);
+  if (classifiers && transaction.type) {
+    await transactionUtils.updateClassifiers(projectId, classifiers, transaction.type);
   }
 
-  if (type && type !== transaction.type) {
+  if (type) {
     transaction.type = type;
   }
 

@@ -11,13 +11,15 @@ const updateClassifiers = async (projectId, classifiers, type) => {
       throw new HttpError('Project not found', 404);
     }
 
-    project.classifiers[type] = classifiers;
+    const updatedClassifiers = classifiers[type];
+
+    project.classifiers[type] = updatedClassifiers;
 
     await project.save();
 
     await Transaction.updateMany(
       { projectId, type },
-      { $set: { classifiers } }
+      { $set: { ['classifiers.' + type]: updatedClassifiers } }
     );
   } catch (err) {
     logger.info(`updateClassifiers: ${err.message}`);
