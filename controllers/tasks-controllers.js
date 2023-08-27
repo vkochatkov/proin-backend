@@ -5,7 +5,7 @@ const Task = require('../models/task');
 const logger = require('../services/logger');
 const Project = require('../models/project');
 const User = require('../models/user');
-const { uploadFiles } = require('../services/s3');
+const { uploadFiles, deleteFile } = require('../services/s3');
 
 require('dotenv').config();
 
@@ -310,6 +310,40 @@ const updateFilesInTask = async (req, res, next) => {
   }
 }
 
+const removeFileFromTask = async (req, res, next) => {
+  const taskId = req.params.tid;
+  const fileId = req.params.fid;
+
+  try {
+    // Find the task by ID
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Find the file by ID in the task's files array
+    const file = task.files.find(file => file._id.toString() === fileId);
+
+    if (!file) {
+      return res.status(404).json({ message: 'File not found in the task' });
+    }
+
+    // Delete the file from AWS S3
+    await deleteFile(file.url);
+
+    // Remove the file from the task's files array
+    task.files = task.files.filter(file => file._id.toString() !== fileId);
+
+    // Save the updated task
+    await task.save();
+
+    res.status(200).json({ task: task.toObject({ getters: true }) });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getAllTasksByUserId = async (req, res, next) => {
   const userId = req.userData.userId;
 
@@ -455,6 +489,7 @@ exports.createTask = createTask;
 exports.getAllTasksByProjectId = getAllTasksByProjectId;
 exports.updateTasksByProjectId = updateTasksByProjectId;
 exports.updateFilesInTask = updateFilesInTask;
+exports.removeFileFromTask = removeFileFromTask;
 exports.getAllTasksByUserId = getAllTasksByUserId;
 exports.updateUserTasks = updateUserTasks;
 exports.createComment = createComment;

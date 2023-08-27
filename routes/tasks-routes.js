@@ -17,5 +17,6 @@ router.post('/:pid', tasksControllers.updateTasksByProjectId);
 router.post('/files/:tid', tasksControllers.updateFilesInTask);
 router.post('/:tid/comment', tasksControllers.createComment);
 router.delete('/:tid/comment/:cid', tasksControllers.deleteComment);
+router.delete('/files/:tid/:fid', tasksControllers.removeFileFromTask)
 
 module.exports = router;
