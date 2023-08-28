@@ -242,7 +242,7 @@ const updateProject = async (req, res, next) => {
     subProjects, 
     files, 
     classifiers, 
-    classifierType
+    classifierType, 
   } = req.body;
   const projectId = req.params.pid;
 
@@ -303,11 +303,15 @@ const updateProject = async (req, res, next) => {
       for (const transaction of transactionsToUpdate) {
         const oldClassifierIndex = oldClassifiers[classifierType]
           .indexOf(transaction.classifier);
-        
+        const isOldClassifierExist = classifiers.includes(transaction.classifier);  
+
         if (oldClassifierIndex !== -1 
           && transaction.classifier !== classifiers[oldClassifierIndex]) {
-          if (oldClassifiers[classifierType].length === classifiers.length) {
-            transaction.classifier = classifiers[oldClassifierIndex]; // Update transaction classifier
+          if (
+            oldClassifiers[classifierType].length === classifiers.length 
+            && !isOldClassifierExist
+          ) {
+            transaction.classifier = classifiers[oldClassifierIndex]; 
           }
         }
   
