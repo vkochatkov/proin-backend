@@ -7,6 +7,6 @@ const checkAuth = require('../middleware/check-auth');
 router.use(checkAuth);
 
 router.get('/:pid', projectMembersControllers.getProjectMembers);
-router.delete('/:pid', projectMembersControllers.removeProjectMember);
+router.delete('/:pid/:uid', projectMembersControllers.removeProjectMember);
 
 module.exports = router;

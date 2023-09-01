@@ -34,7 +34,7 @@ const getProjectMembers = async (req, res, next) => {
 
 const removeProjectMember = async (req, res, next) => {
   const projectId = req.params.pid;
-  const { userId } = req.body;
+  const userId = req.params.uid;
 
   let projectMember;
   try {
