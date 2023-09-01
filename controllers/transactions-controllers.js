@@ -156,7 +156,8 @@ const updateTransaction = async (req, res, next) => {
     sum, 
     classifier, 
     type,
-    classifiers
+    classifiers, 
+    timestamp
   } = req.body;
 
   let transaction;
@@ -182,6 +183,10 @@ const updateTransaction = async (req, res, next) => {
 
   if (classifier) {
     transaction.classifier = classifier;
+  }
+
+  if (timestamp) {
+    transaction.timestamp = timestamp;
   }
 
   if (classifiers && transaction.type) {
