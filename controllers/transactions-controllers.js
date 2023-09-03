@@ -37,26 +37,57 @@ const getProjectTransactions = async (req, res, next) => {
 const getUserTransactions = async (req, res, next) => {
   const userId = req.userData.userId;
 
-  let user;
   try {
-    user = await User.findById(userId).populate('transactions');
+    const user = await User.findById(userId).populate('transactions');
+    if (!user) {
+      const error = new HttpError('Could not find the user for the provided id.', 404);
+      return next(error);
+    }
+
+    // Fetch user transactions
+    const userTransactions = user.transactions;
+
+    // Fetch project transactions from shared projects
+    const projectTransactions = await Transaction.find({
+      projectId: {
+        $in: await Project.find({ sharedWith: userId }).distinct('_id'),
+      },
+    });
+
+    // Create an array to store unique transactions
+    const uniqueTransactions = [];
+
+    // Function to check if a transaction is unique based on its properties
+    const isTransactionUnique = (transaction) => {
+      const transactionString = JSON.stringify(transaction);
+      return !uniqueTransactions.some((existingTransaction) => {
+        const existingTransactionString = JSON.stringify(existingTransaction);
+        return transactionString === existingTransactionString;
+      });
+    };
+
+    // Add user transactions to the uniqueTransactions array
+    userTransactions.forEach((transaction) => {
+      if (isTransactionUnique(transaction)) {
+        uniqueTransactions.push(transaction);
+      }
+    });
+
+    // Add project transactions to the uniqueTransactions array
+    projectTransactions.forEach((transaction) => {
+      if (isTransactionUnique(transaction)) {
+        uniqueTransactions.push(transaction);
+      }
+    });
+
+    res.json({ transactions: uniqueTransactions });
   } catch (err) {
     const error = new HttpError(
-      'Something went wrong, could not fetch user transactions.',
+      'Something went wrong, could not fetch transactions.',
       500
     );
     return next(error);
   }
-
-  if (!user) {
-    const error = new HttpError(
-      'Could not find user for the provided id.',
-      404
-    );
-    return next(error);
-  }
-
-  res.json({ transactions: user.transactions });
 };
 
 const getTransactionById = async (req, res, next) => {
