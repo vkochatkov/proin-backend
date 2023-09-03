@@ -54,33 +54,18 @@ const getUserTransactions = async (req, res, next) => {
       },
     });
 
-    // Create an array to store unique transactions
-    const uniqueTransactions = [];
+    // Create a Set to store unique transaction IDs from userTransactions
+    const userTransactionsIds = new Set(userTransactions.map((transaction) => transaction.taskId));
 
-    // Function to check if a transaction is unique based on its properties
-    const isTransactionUnique = (transaction) => {
-      const transactionString = JSON.stringify(transaction);
-      return !uniqueTransactions.some((existingTransaction) => {
-        const existingTransactionString = JSON.stringify(existingTransaction);
-        return transactionString === existingTransactionString;
-      });
-    };
+    // Filter projectTransactions to exclude transactions that already exist in userTransactions
+    const filteredProjectTasks = projectTransactions.filter(
+      (projectTransaction) => !userTransactionsIds.has(projectTransaction.taskId)
+    );
 
-    // Add user transactions to the uniqueTransactions array
-    userTransactions.forEach((transaction) => {
-      if (isTransactionUnique(transaction)) {
-        uniqueTransactions.push(transaction);
-      }
-    });
+    // Combine user transactions and filtered project transactions
+    const transactions = [...userTransactions, ...filteredProjectTasks];
 
-    // Add project transactions to the uniqueTransactions array
-    projectTransactions.forEach((transaction) => {
-      if (isTransactionUnique(transaction)) {
-        uniqueTransactions.push(transaction);
-      }
-    });
-
-    res.json({ transactions: uniqueTransactions });
+    res.json({ transactions });
   } catch (err) {
     const error = new HttpError(
       'Something went wrong, could not fetch transactions.',

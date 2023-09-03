@@ -347,17 +347,35 @@ const removeFileFromTask = async (req, res, next) => {
 const getAllTasksByUserId = async (req, res, next) => {
   const userId = req.userData.userId;
 
-  let tasks;
   try {
+    // Fetch user's tasks
     const user = await User.findById(userId).populate('tasks');
-    tasks = user.tasks;
+    const userTasks = user.tasks;
+
+    // Fetch project tasks from shared projects
+    const projectTasks = await Task.find({
+      projectId: {
+        $in: await Project.find({ sharedWith: userId }).distinct('_id'),
+      }
+    });
+
+    // Create a Set to store unique task IDs from userTasks
+    const userTaskIds = new Set(userTasks.map((task) => task.taskId));
+
+    // Filter projectTasks to exclude tasks that already exist in userTasks
+    const filteredProjectTasks = projectTasks.filter(
+      (projectTask) => !userTaskIds.has(projectTask.taskId)
+    );
+
+    // Combine user tasks and filtered project tasks
+    const tasks = [...userTasks, ...filteredProjectTasks];
+
+    res.status(200).json({ tasks });
   } catch (err) {
     logger.info(`getAllTasksByUserId error: ${err}`);
     const error = new HttpError('Fetching tasks failed, please try again.', 500);
     return next(error);
   }
-
-  res.status(200).json({ tasks: tasks ? tasks : [] });
 };
 
 const createComment = async (req, res, next) => {
