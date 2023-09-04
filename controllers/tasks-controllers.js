@@ -231,6 +231,8 @@ const updateTask = async (req, res, next) => {
     task.comments = comments;
   }
 
+  task.actions.sort((a, b) => b.timestamp - a.timestamp);
+
   try {
     await task.save();
   } catch (err) {
