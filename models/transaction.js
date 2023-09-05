@@ -15,7 +15,12 @@ const transactionSchema = new Schema({
     income: [String],
     expenses: [String],
     transfer: [String],
-  }
+  },
+  files: [{
+    name: { type: String }, 
+    url: { type: String },
+    id: { type: mongoose.Types.ObjectId, default: function() { return this._id } }
+  }],
 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

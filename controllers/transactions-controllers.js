@@ -7,6 +7,7 @@ const Project = require('../models/project');
 const User = require('../models/user');
 const transactionUtils = require('../services/transaction-utils');
 
+const { uploadFiles, deleteFile } = require('../services/s3');
 
 const getProjectTransactions = async (req, res, next) => {
   const projectId = req.params.pid;
@@ -173,7 +174,8 @@ const updateTransaction = async (req, res, next) => {
     classifier, 
     type,
     classifiers, 
-    timestamp
+    timestamp,
+    files
   } = req.body;
 
   let transaction;
@@ -188,6 +190,11 @@ const updateTransaction = async (req, res, next) => {
     const error = new HttpError('Could not find transaction for the provided id.', 404);
     return next(error);
   }
+
+  if (projectId && files && files.length > 0) {
+    const uploadedFiles = await uploadFiles(files, projectId);
+    transaction.files = transaction.files.concat(uploadedFiles.filter(file => file !== undefined));
+  }  
 
   if (description) {
     transaction.description = description;
@@ -355,6 +362,40 @@ const updateUserTransactionsById = async (req, res, next) => {
   res.status(200).json({ message: 'Transactions updated successfully.' });
 };
 
+const removeFileFromTransaction = async (req, res, next) => {
+  const taskId = req.params.id;
+  const fileId = req.params.fid;
+
+  try {
+    // Find the transaction by ID
+    const transaction = await Transaction.findById(taskId);
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Find the file by ID in the transaction's files array
+    const file = transaction.files.find(file => file._id.toString() === fileId);
+
+    if (!file) {
+      return res.status(404).json({ message: 'File not found in the transaction' });
+    }
+
+    // Delete the file from AWS S3
+    await deleteFile(file.url);
+
+    // Remove the file from the transaction's files array
+    transaction.files = transaction.files.filter(file => file._id.toString() !== fileId);
+
+    // Save the updated transaction
+    await transaction.save();
+
+    res.status(200).json({ transaction: transaction.toObject({ getters: true }) });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.createTransaction = createTransaction;
 exports.updateTransaction = updateTransaction;
 exports.deleteTransaction = deleteTransaction;
@@ -363,3 +404,4 @@ exports.getProjectTransactions = getProjectTransactions;
 exports.updateTransactionsByProjectId = updateTransactionsByProjectId;
 exports.getUserTransactions = getUserTransactions;
 exports.updateUserTransactionsById = updateUserTransactionsById;
+exports.removeFileFromTransaction = removeFileFromTransaction;
