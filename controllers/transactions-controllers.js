@@ -56,15 +56,15 @@ const getUserTransactions = async (req, res, next) => {
     });
 
     // Create a Set to store unique transaction IDs from userTransactions
-    const userTransactionsIds = new Set(userTransactions.map((transaction) => transaction.taskId));
+    const userTransactionsIds = new Set(userTransactions.map((transaction) => transaction.transactionId));
 
     // Filter projectTransactions to exclude transactions that already exist in userTransactions
-    const filteredProjectTasks = projectTransactions.filter(
-      (projectTransaction) => !userTransactionsIds.has(projectTransaction.taskId)
+    const filteredProjectTransactions = projectTransactions.filter(
+      (projectTransaction) => !userTransactionsIds.has(projectTransaction.transactionId)
     );
 
     // Combine user transactions and filtered project transactions
-    const transactions = [...userTransactions, ...filteredProjectTasks];
+    const transactions = [...userTransactions, ...filteredProjectTransactions];
 
     res.json({ transactions });
   } catch (err) {
@@ -363,15 +363,15 @@ const updateUserTransactionsById = async (req, res, next) => {
 };
 
 const removeFileFromTransaction = async (req, res, next) => {
-  const taskId = req.params.id;
+  const transactionId = req.params.id;
   const fileId = req.params.fid;
 
   try {
     // Find the transaction by ID
-    const transaction = await Transaction.findById(taskId);
+    const transaction = await Transaction.findById(transactionId);
 
     if (!transaction) {
-      return res.status(404).json({ message: 'Task not found' });
+      return res.status(404).json({ message: 'transaction not found' });
     }
 
     // Find the file by ID in the transaction's files array
@@ -396,6 +396,29 @@ const removeFileFromTransaction = async (req, res, next) => {
   }
 };
 
+const updateFilesInTransaction = async (req, res, next) => {
+  const transactionId = req.params.id;
+  const { files } = req.body;
+
+  try {
+    const transaction = await Transaction.findById(transactionId);
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'transaction not found.' });
+    }
+    
+    transaction.files = files;
+
+    await transaction.save();
+
+    res.status(200).json({ transaction: transaction.toObject({ getters: true }) });
+  } catch (err) {
+    logger.info(`updateFilesInTransaction ${err}`);
+    const error = new HttpError('Something went wrong, could not update files in transaction.', 500);
+    return next(error);
+  }
+}
+
 exports.createTransaction = createTransaction;
 exports.updateTransaction = updateTransaction;
 exports.deleteTransaction = deleteTransaction;
@@ -405,3 +428,4 @@ exports.updateTransactionsByProjectId = updateTransactionsByProjectId;
 exports.getUserTransactions = getUserTransactions;
 exports.updateUserTransactionsById = updateUserTransactionsById;
 exports.removeFileFromTransaction = removeFileFromTransaction;
+exports.updateFilesInTransaction = updateFilesInTransaction;

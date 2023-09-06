@@ -16,5 +16,6 @@ router.patch('/project/:pid', transactionsControllers.updateTransactionsByProjec
 router.get('/all', transactionsControllers.getUserTransactions);
 router.patch('/user/:uid', transactionsControllers.updateUserTransactionsById);
 router.delete('/files/:id/:fid', transactionsControllers.removeFileFromTransaction);
+router.post('/files/:id', transactionsControllers.updateFilesInTransaction);
 
 module.exports = router;
