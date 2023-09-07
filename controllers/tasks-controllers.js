@@ -315,8 +315,12 @@ const updateFilesInTask = async (req, res, next) => {
 const removeFileFromTask = async (req, res, next) => {
   const taskId = req.params.tid;
   const fileId = req.params.fid;
+  const userId = req.userData.userId;
 
   try {
+    const user = await User.findById(userId);
+    
+    const { name: userName, logoUrl: userLogo } = user;
     // Find the task by ID
     const task = await Task.findById(taskId);
 
@@ -336,6 +340,21 @@ const removeFileFromTask = async (req, res, next) => {
 
     // Remove the file from the task's files array
     task.files = task.files.filter(file => file._id.toString() !== fileId);
+
+    const actionDescription = `Видалено файл/файли`;
+
+    task.actions.push({ 
+      description: actionDescription, 
+      timestamp: new Date(), 
+      userId, 
+      name: userName, 
+      userLogo, 
+      field: 'files', 
+      oldValue: file.name, 
+      // newValue: files 
+    });
+
+    task.actions.sort((a, b) => b.timestamp - a.timestamp);
 
     // Save the updated task
     await task.save();
