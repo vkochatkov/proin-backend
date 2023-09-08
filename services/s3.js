@@ -1,6 +1,7 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const mime = require('mime-types');
 const logger = require('./logger');
+const sharp = require('sharp'); 
 
 require('dotenv').config();
 
@@ -27,13 +28,31 @@ const uploadFile = async (dataBase64, projectId, filename) => {
     const buff = Buffer.from(dataBase64.replace(/^data:[^;]+;base64,/, ""), 'base64');
     const path = `files/${projectId}/${filename}`;
 
-    logger.info('uploadFile func is going well. next step is client.send request, 25 line');
+    // Compress the image using sharp
+    let compressedBuff;
+
+    if (fileExtension === 'jpeg' || fileExtension === 'jpg') {
+      // For JPEG images, adjust quality
+      compressedBuff = await sharp(buff)
+        .jpeg({ quality: 60 }) // Adjust quality as needed
+        .toBuffer();
+    } else if (fileExtension === 'png') {
+      // For PNG images, adjust compression level
+      compressedBuff = await sharp(buff)
+        .resize({ width: 600 })
+        // .png({ resize, adaptiveFiltering: true, force: true }) // Adjust compression level as needed
+        .toBuffer();
+    } else {
+      // For other formats, no specific compression
+      compressedBuff = buff;
+    }
+
     const response = await client.send(
       new PutObjectCommand({
         Bucket: bucketName,
         ACL: 'public-read',
         Key: path,
-        Body: buff,
+        Body: compressedBuff,
         ContentType: contentType,
         ContentEncoding: 'base64'
       })
