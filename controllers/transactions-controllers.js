@@ -103,7 +103,7 @@ const getTransactionById = async (req, res, next) => {
 };
 
 const createTransaction = async (req, res, next) => {
-  const { projectId, timestamp } = req.body;
+  const { projectId, timestamp, type } = req.body;
   const userId = req.userData.userId;
 
   let project;
@@ -130,7 +130,7 @@ const createTransaction = async (req, res, next) => {
     classifier: '',
     id: '',
     timestamp: '',
-    type: '',
+    type,
     timestamp,
     classifiers
   });
