@@ -28,7 +28,7 @@ const findProject = async (projectId) => {
 
 const createProjectComment = async (req, res, next) => {
   const projectId = req.params.pid;
-  const { id, text, timestamp, name, userId, mentions } = req.body;
+  const { id, text, timestamp, name, userId, mentions, parentId } = req.body;
   
   const project = await findProject(projectId);
 
@@ -39,6 +39,7 @@ const createProjectComment = async (req, res, next) => {
     name,
     projectId,
     userId,
+    parentId
   })
 
   try {

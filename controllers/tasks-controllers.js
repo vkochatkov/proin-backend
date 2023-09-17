@@ -400,7 +400,15 @@ const getAllTasksByUserId = async (req, res, next) => {
 };
 
 const createComment = async (req, res, next) => {
-  const { comment: { taskId, text, userId, mentions, timestamp, name } } = req.body;
+  const { comment: { 
+    taskId, 
+    text, 
+    userId, 
+    mentions, 
+    timestamp, 
+    name, 
+    parentId 
+  } } = req.body;
 
   let task;
   try {
@@ -422,7 +430,8 @@ const createComment = async (req, res, next) => {
     taskId,
     userId,
     mentions,
-    name
+    name,
+    parentId
   };
 
   task.comments.unshift(comment);

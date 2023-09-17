@@ -9,7 +9,8 @@ const commentSchema = new Schema({
   name: { type: String },
   projectId: { type: mongoose.Types.ObjectId, required: true, ref: 'Project' },
   userId: { type: mongoose.Types.ObjectId },
-  mentions: [{ type: String }]
+  mentions: [{ type: String }],
+  parentId: { type: String }
 });
 
 module.exports = mongoose.model('Comment', commentSchema);

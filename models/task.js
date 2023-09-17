@@ -9,7 +9,8 @@ const commentSchema = new Schema({
   name: { type: String },
   taskId: { type: mongoose.Types.ObjectId, required: true, ref: 'Task' },
   userId: { type: mongoose.Types.ObjectId },
-  mentions: [{ type: String }]
+  mentions: [{ type: String }],
+  parentId: { type: String }
 });
 
 const actionSchema = new Schema({
