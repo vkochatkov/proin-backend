@@ -146,10 +146,10 @@ const createTransaction = async (req, res, next) => {
     await createdTransaction.save({ session });
 
     const user = await User.findById(userId);
-    user.transactions.push(createdTransaction);
+    user.transactions.unshift(createdTransaction);
 
     const project = await Project.findById(projectId);
-    project.transactions.push(createdTransaction);
+    project.transactions.unshift(createdTransaction);
 
     await user.save({ session });
     await project.save({ session });
