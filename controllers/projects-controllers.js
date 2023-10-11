@@ -198,6 +198,7 @@ const updateProjectsByUserId = async (req, res, next) => {
 const createProject = async (req, res, next) => {
   const createdProject = new Project({
     creator: req.userData.userId,
+    timestamp: new Date().toISOString()
   });
 
   let user;

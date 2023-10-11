@@ -25,7 +25,8 @@ const projectSchema = new Schema({
     income: [String],
     expenses: [String],
     transfer: [String],
-  }
+  },
+  timestamp: { type: String }
 });
 
 module.exports = mongoose.model('Project', projectSchema);
