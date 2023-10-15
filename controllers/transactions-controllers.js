@@ -433,7 +433,7 @@ const createComment = async (req, res, next) => {
 
   try {
     // Find the transaction based on the transactionId
-    const transaction = await Transaction.findById(tid);
+    const transaction = await Transaction.findById(transactionId);
     
     if (!transaction) {
       const error = new HttpError('Transaction not found.', 404);
@@ -452,7 +452,7 @@ const createComment = async (req, res, next) => {
     };
 
     // Add the comment to the transaction
-    transaction.comments.push(comment);
+    transaction.comments.unshift(comment);
 
     transaction.comments.forEach((c) => {
       c.id = c._id.toString(); 
