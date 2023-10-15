@@ -422,7 +422,7 @@ const updateFilesInTransaction = async (req, res, next) => {
 const createComment = async (req, res, next) => {
   // Parse and validate request data
   const { comment: { 
-    taskId, 
+    tid, 
     text, 
     userId, 
     mentions, 
@@ -432,8 +432,8 @@ const createComment = async (req, res, next) => {
   } } = req.body;
 
   try {
-    // Find the transaction based on the taskId
-    const transaction = await Transaction.findById(taskId);
+    // Find the transaction based on the transactionId
+    const transaction = await Transaction.findById(tid);
     
     if (!transaction) {
       const error = new HttpError('Transaction not found.', 404);
@@ -444,7 +444,7 @@ const createComment = async (req, res, next) => {
     const comment = {
       text,
       timestamp,
-      taskId,
+      transactionId: tid,
       userId,
       mentions,
       name,
@@ -453,6 +453,10 @@ const createComment = async (req, res, next) => {
 
     // Add the comment to the transaction
     transaction.comments.push(comment);
+
+    transaction.comments.forEach((c) => {
+      c.id = c._id.toString(); 
+    });
 
     // Save the transaction
     await transaction.save();
