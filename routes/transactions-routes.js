@@ -17,5 +17,7 @@ router.get('/all', transactionsControllers.getUserTransactions);
 router.patch('/user/:uid', transactionsControllers.updateUserTransactionsById);
 router.delete('/files/:id/:fid', transactionsControllers.removeFileFromTransaction);
 router.post('/files/:id', transactionsControllers.updateFilesInTransaction);
+router.post('/comments', transactionsControllers.createComment);
+router.delete('/comments/:tid/:cid', transactionsControllers.deleteComment);
 
 module.exports = router;

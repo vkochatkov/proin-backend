@@ -419,6 +419,91 @@ const updateFilesInTransaction = async (req, res, next) => {
   }
 }
 
+const createComment = async (req, res, next) => {
+  // Parse and validate request data
+  const { comment: { 
+    taskId, 
+    text, 
+    userId, 
+    mentions, 
+    timestamp, 
+    name, 
+    parentId 
+  } } = req.body;
+
+  try {
+    // Find the transaction based on the taskId
+    const transaction = await Transaction.findById(taskId);
+    
+    if (!transaction) {
+      const error = new HttpError('Transaction not found.', 404);
+      return next(error);
+    }
+
+    // Create a new comment
+    const comment = {
+      text,
+      timestamp,
+      taskId,
+      userId,
+      mentions,
+      name,
+      parentId
+    };
+
+    // Add the comment to the transaction
+    transaction.comments.push(comment);
+
+    // Save the transaction
+    await transaction.save();
+
+    // Return a success response
+    res.status(201).json({ transaction });
+  } catch (err) {
+    // Handle errors
+    logger.info(err.message);
+    const error = new HttpError('Failed to create the comment.', 500);
+    return next(error);
+  }
+};
+
+const deleteComment = async (req, res, next) => {
+  // Extract parameters from the request
+  const { tid, cid } = req.params;
+
+  try {
+    // Find the transaction based on the tid
+    const transaction = await Transaction.findById(tid);
+    
+    if (!transaction) {
+      const error = new HttpError('Transaction not found.', 404);
+      return next(error);
+    }
+
+    // Find the comment by its ID
+    const commentIndex = transaction.comments.findIndex(comment => comment._id.toString() === cid);
+
+    if (commentIndex === -1) {
+      const error = new HttpError('Comment not found.', 404);
+      return next(error);
+    }
+
+    // Remove the comment from the transaction
+    transaction.comments.splice(commentIndex, 1);
+
+    // Save the transaction
+    await transaction.save();
+
+    // Return a success response
+    res.status(200).json({ transaction });
+  } catch (err) {
+    // Handle errors
+    logger.info(`Error in deleteComment. Message: ${err.message}`);
+    const error = new HttpError('Failed to delete the comment.', 500);
+    return next(error);
+  }
+};
+
 exports.createTransaction = createTransaction;
 exports.updateTransaction = updateTransaction;
 exports.deleteTransaction = deleteTransaction;
@@ -429,3 +514,5 @@ exports.getUserTransactions = getUserTransactions;
 exports.updateUserTransactionsById = updateUserTransactionsById;
 exports.removeFileFromTransaction = removeFileFromTransaction;
 exports.updateFilesInTransaction = updateFilesInTransaction;
+exports.createComment = createComment;
+exports.deleteComment = deleteComment;
