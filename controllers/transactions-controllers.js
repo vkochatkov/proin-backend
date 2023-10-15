@@ -422,7 +422,7 @@ const updateFilesInTransaction = async (req, res, next) => {
 const createComment = async (req, res, next) => {
   // Parse and validate request data
   const { comment: { 
-    tid, 
+    transactionId, 
     text, 
     userId, 
     mentions, 
@@ -444,7 +444,7 @@ const createComment = async (req, res, next) => {
     const comment = {
       text,
       timestamp,
-      transactionId: tid,
+      transactionId,
       userId,
       mentions,
       name,
