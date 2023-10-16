@@ -175,7 +175,8 @@ const updateTransaction = async (req, res, next) => {
     type,
     classifiers, 
     timestamp,
-    files
+    files,
+    comments
   } = req.body;
 
   let transaction;
@@ -218,6 +219,10 @@ const updateTransaction = async (req, res, next) => {
 
   if (type) {
     transaction.type = type;
+  }
+
+  if (comments) {
+    transaction.comments = comments;
   }
 
   try {
