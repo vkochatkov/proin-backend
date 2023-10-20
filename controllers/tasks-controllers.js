@@ -54,7 +54,7 @@ const createTask = async (req, res, next) => {
     await createdTask.save({ session: sess });
 
     project.tasks.unshift(createdTask);
-    user.tasks.push(createdTask);
+    user.tasks.unshift(createdTask);
 
     await project.save({ session: sess });
     await user.save({ session: sess });
