@@ -40,6 +40,8 @@ const taskSchema = new Schema({
   description: { type: String },
   name: { type: String },
   files: [{
+    width: { type: Number },
+    height: { type: Number },
     name: { type: String }, 
     url: { type: String },
     id: { type: mongoose.Types.ObjectId, default: function() { return this._id } }

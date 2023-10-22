@@ -28,6 +28,8 @@ const transactionSchema = new Schema({
     transfer: [String],
   },
   files: [{
+    width: { type: Number },
+    height: { type: Number },
     name: { type: String }, 
     url: { type: String },
     id: { type: mongoose.Types.ObjectId, default: function() { return this._id } }

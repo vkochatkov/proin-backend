@@ -83,7 +83,9 @@ const uploadFiles = async (files, projectId) => {
     if (isUploaded) {
       return {
         url: url,
-        name: file.name
+        name: file.name,
+        width: file.width,
+        height: file.height
       }
     }
   }));

@@ -17,7 +17,9 @@ const projectSchema = new Schema({
   parentProject: { type: mongoose.Types.ObjectId, ref: 'Project' },
   files: [{
     name: { type: String }, 
-    url: { type: String }
+    url: { type: String },
+    width: { type: Number},
+    height: { type: Number }
   }],
   tasks: [{ type: mongoose.Types.ObjectId, ref: 'Task' }],
   transactions: [{ type: mongoose.Types.ObjectId, ref: 'Transaction'}],
