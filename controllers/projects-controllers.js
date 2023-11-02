@@ -219,7 +219,7 @@ const createProject = async (req, res, next) => {
 
     await creatorMember.save({ session: sess });
 
-    user.projects.push(createdProject);
+    user.projects.unshift(createdProject);
     await user.save({ session: sess });
     await sess.commitTransaction();
   } catch (err) {
