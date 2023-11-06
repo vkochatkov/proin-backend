@@ -233,19 +233,23 @@ const updateTransaction = async (req, res, next) => {
 
     await transaction.save({ session });
 
-    const project = await Project.findById(projectId);
-
-    if (!project) {
-        const error = new HttpError('Could not find project for the provided id.', 404);
-        return next(error);
+    if (projectId) {
+      const project = await Project.findById(projectId);
+  
+      if (!project) {
+          const error = new HttpError('Could not find project for the provided id.', 404);
+          return next(error);
+        }
+  
+      const projectTransactionIndex = project.transactions.findIndex(
+        (projTransaction) => projTransaction._id.toString() === transactionId
+      );
+  
+      if (projectTransactionIndex !== -1) {
+        project.transactions.set(projectTransactionIndex, transaction);
       }
 
-    const projectTransactionIndex = project.transactions.findIndex(
-      (projTransaction) => projTransaction._id.toString() === transactionId
-    );
-
-    if (projectTransactionIndex !== -1) {
-      project.transactions.set(projectTransactionIndex, transaction);
+      await project.save({ session });
     }
 
     const user = await User.findById(userId);
@@ -263,7 +267,6 @@ const updateTransaction = async (req, res, next) => {
       user.transactions.set(userTransactionIndex, transaction);
     }
 
-    await project.save({ session });
     await user.save({ session });
 
     await session.commitTransaction();
@@ -299,13 +302,16 @@ const deleteTransaction = async (req, res, next) => {
 
     await transaction.remove({ session });
 
-    const project = await Project.findById(transaction.projectId).session(session);
-    project.transactions.pull(transactionId);
+    if (transaction.projectId) {
+      const project = await Project.findById(transaction.projectId).session(session);
+      project.transactions.pull(transactionId);
+
+      await project.save({ session });
+    }
 
     const user = await User.findById(userId).session(session);
     user.transactions.pull(transactionId);
 
-    await project.save({ session });
     await user.save({ session });
 
     await session.commitTransaction();
