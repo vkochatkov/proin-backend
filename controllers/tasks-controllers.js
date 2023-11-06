@@ -32,8 +32,7 @@ const getAllTasksByProjectId = async (req, res, next) => {
 
 const createTask = async (req, res, next) => {
   const userId = req.userData.userId;
-  const projectId = req.params.pid;
-  const { timestamp, taskId, name } = req.body;
+  const { timestamp, taskId, name, projectId } = req.body;
 
   const createdTask = new Task({
     timestamp,
@@ -48,15 +47,18 @@ const createTask = async (req, res, next) => {
     const sess = await mongoose.startSession();
     sess.startTransaction();
 
-    const project = await Project.findById(projectId);
-    const user = await User.findById(userId);
-    
     await createdTask.save({ session: sess });
 
-    project.tasks.unshift(createdTask);
+    if (projectId) {
+      const project = await Project.findById(projectId);
+
+      project.tasks.unshift(createdTask);
+      await project.save({ session: sess });
+    }
+
+    const user = await User.findById(userId);
     user.tasks.unshift(createdTask);
 
-    await project.save({ session: sess });
     await user.save({ session: sess });
     await sess.commitTransaction();
   } catch (err) {
@@ -91,9 +93,11 @@ const deleteTask = async (req, res, next) => {
     const session = await mongoose.startSession();
     session.startTransaction();
 
-    const project = await Project.findById(task.projectId).session(session);
-    project.tasks.pull(task._id); // Remove the task from the project's tasks array
-    await project.save({ session });
+    if (task.projectId) {
+      const project = await Project.findById(task.projectId).session(session);
+      project.tasks.pull(task._id); // Remove the task from the project's tasks array
+      await project.save({ session });
+    }
 
     const user = await User.findById(userId).session(session);
     user.tasks.pull(task._id); // Remove the task from the user's tasks array
