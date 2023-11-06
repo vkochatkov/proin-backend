@@ -19,5 +19,6 @@ router.delete('/files/:id/:fid', transactionsControllers.removeFileFromTransacti
 router.post('/files/:id', transactionsControllers.updateFilesInTransaction);
 router.post('/:tid/comments', transactionsControllers.createComment);
 router.delete('/:tid/comments/:cid', transactionsControllers.deleteComment);
+router.post('/user-transaction', transactionsControllers.createUserTransaction);
 
 module.exports = router;

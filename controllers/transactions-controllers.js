@@ -513,6 +513,56 @@ const deleteComment = async (req, res, next) => {
   }
 };
 
+const createUserTransaction = async (req, res, next) => {
+  const { timestamp } = req.body;
+  const userId = req.userData.userId;
+
+  let user;
+
+  try {
+    user = await User.findById(userId);
+  } catch (err) {
+    logger.info(`error at createUserTransaction, message: ${err.message}`);
+    const error = new HttpError('Could not find the user for the provided ID.', 404);
+    return next(error);
+  }
+
+  const createdTransaction = new Transaction({
+    userId,
+    timestamp,
+    type: '',
+    description: '',
+    projectId: '', 
+    sum: '',
+    classifier: '',
+    id: '',
+    classifiers: [],
+  });
+
+  try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    await createdTransaction.save({ session });
+
+    createdTransaction.id = createdTransaction._id.toString();
+
+    await createdTransaction.save({ session });
+
+    user.transactions.unshift(createdTransaction);
+
+    await user.save({ session });
+
+    await session.commitTransaction();
+  } catch (err) {
+    logger.info(`error at createUserTransaction, message: ${err.message}`);
+    const error = new HttpError('Creating user transaction failed, please try again.', 500);
+    return next(error);
+  }
+
+  res.status(201).json({ transaction: createdTransaction });
+};
+
 exports.createTransaction = createTransaction;
 exports.updateTransaction = updateTransaction;
 exports.deleteTransaction = deleteTransaction;
@@ -525,3 +575,4 @@ exports.removeFileFromTransaction = removeFileFromTransaction;
 exports.updateFilesInTransaction = updateFilesInTransaction;
 exports.createComment = createComment;
 exports.deleteComment = deleteComment;
+exports.createUserTransaction = createUserTransaction;
