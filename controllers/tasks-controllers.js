@@ -571,7 +571,7 @@ const updateTaskProject = async (req, res, next) => {
     // Remove the task from the old project's tasks
     if (oldProject) {
       oldProject.tasks = oldProject.tasks
-        .filter((taskId) => taskId.toString() !== taskId);
+        .filter((task) => task._id.toString() !== taskId);
     }
 
     // Add the task to the new project's tasks
