@@ -535,6 +535,70 @@ const deleteComment = async (req, res, next) => {
   res.status(200).json({ task });
 };  
 
+const updateTaskProject = async (req, res, next) => {
+  const taskId = req.params.tid;
+  const oldProjectId = req.body.oldProjectId; // The old project's ID
+  const newProjectId = req.body.newProjectId; // The new project's ID
+
+  try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    let oldProject;
+
+    if (oldProjectId){
+      oldProject = await Project.findById(oldProjectId);
+    }
+
+    const newProject = await Project.findById(newProjectId);
+
+    if (!newProject) {
+      await session.abortTransaction();
+      session.endSession();
+
+      return res.status(404).json({ message: 'New project not found.' });
+    }
+
+    // Find the task to be moved in the old project's tasks
+    const task = await Task.findById(taskId);
+
+    if (!task) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Task not found in the old project.' });
+    }
+
+    // Remove the task from the old project's tasks
+    if (oldProject) {
+      oldProject.tasks = oldProject.tasks
+        .filter((taskId) => taskId.toString() !== taskId);
+    }
+
+    // Add the task to the new project's tasks
+    newProject.tasks.unshift(taskId);
+
+    if (task) {
+      task.projectId = newProject._id;
+    }
+
+    await task.save();
+
+    if (oldProject) {
+      await oldProject.save();
+    }
+
+    await newProject.save();
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({ message: 'Task moved successfully.' });
+  } catch (err) {
+    logger.info(err);
+    res.status(500).json({ message: 'Something went wrong, could not update tasks in projects.' });
+  }
+};
+
 exports.updateTask = updateTask;
 exports.deleteTask = deleteTask;
 exports.createTask = createTask;
@@ -546,3 +610,4 @@ exports.getAllTasksByUserId = getAllTasksByUserId;
 exports.updateUserTasks = updateUserTasks;
 exports.createComment = createComment;
 exports.deleteComment = deleteComment;
+exports.updateTaskProject = updateTaskProject;
