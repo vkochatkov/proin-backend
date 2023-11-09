@@ -569,6 +569,70 @@ const createUserTransaction = async (req, res, next) => {
   res.status(201).json({ transaction: createdTransaction });
 };
 
+const updateTransactionProject = async (req, res, next) => {
+  const transactionId = req.params.tid;
+  const oldProjectId = req.body.oldProjectId; // The old project's ID
+  const newProjectId = req.body.newProjectId; // The new project's ID
+
+  try {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    let oldProject;
+
+    if (oldProjectId) {
+      oldProject = await Project.findById(oldProjectId);
+    }
+
+    const newProject = await Project.findById(newProjectId);
+
+    if (!newProject) {
+      await session.abortTransaction();
+      session.endSession();
+
+      return res.status(404).json({ message: 'New project not found.' });
+    }
+
+    // Find the transaction to be moved in the old project's transactions
+    const transaction = await Transaction.findById(transactionId);
+
+    if (!transaction) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: 'Transaction not found in the old project.' });
+    }
+
+    // Remove the transaction from the old project's transactions
+    if (oldProject) {
+      oldProject.transactions = oldProject.transactions
+        .filter((trans) => trans._id.toString() !== transactionId);
+    }
+
+    // Add the transaction to the new project's transactions
+    newProject.transactions.unshift(transactionId);
+
+    if (transaction) {
+      transaction.projectId = newProject._id;
+    }
+
+    await transaction.save();
+
+    if (oldProject) {
+      await oldProject.save();
+    }
+
+    await newProject.save();
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(200).json({ message: 'Transaction moved successfully.' });
+  } catch (err) {
+    logger.info(err);
+    res.status(500).json({ message: 'Something went wrong, could not update transactions in projects.' });
+  }
+};
+
 exports.createTransaction = createTransaction;
 exports.updateTransaction = updateTransaction;
 exports.deleteTransaction = deleteTransaction;
@@ -582,3 +646,4 @@ exports.updateFilesInTransaction = updateFilesInTransaction;
 exports.createComment = createComment;
 exports.deleteComment = deleteComment;
 exports.createUserTransaction = createUserTransaction;
+exports.updateTransactionProject = updateTransactionProject;
