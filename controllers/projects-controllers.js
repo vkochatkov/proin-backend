@@ -359,7 +359,11 @@ const deleteProject = async (req, res, next) => {
 
   let project;
   try {
-    project = await Project.findById(projectId).populate('creator').populate('tasks');
+    project = await Project
+      .findById(projectId)
+      .populate('creator')
+      .populate('tasks')
+      .populate('transactions');
   } catch (err) {
     const error = new HttpError('Something went wrong, could not delete project.', 500);
     logger.info(`POST deleteProject ${error}`);
@@ -411,6 +415,16 @@ const deleteProject = async (req, res, next) => {
       // Remove the task from the user's tasks array
       const user = await User.findById(task.userId).session(sess);
       user.tasks.pull(task);
+      await user.save({ session: sess });
+    }
+
+    // Remove transactions associated with the project
+    for (const transaction of project.transactions) {
+      await transaction.remove({ session: sess });
+      
+      const user = await User.findById(transaction.userId).session(sess);
+      user.transactions.pull(transaction);
+      // project.transactions.pull(transaction);
       await user.save({ session: sess });
     }
 
