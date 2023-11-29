@@ -11,6 +11,12 @@ const commentSchema = new Schema({
   userId: { type: mongoose.Types.ObjectId },
   mentions: [{ type: String }],
   parentId: { type: String },
+  files: [{
+    name: { type: String }, 
+    url: { type: String },
+    width: { type: Number},
+    height: { type: Number }
+  }],
 });
 
 const transactionSchema = new Schema({

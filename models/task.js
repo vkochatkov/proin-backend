@@ -10,7 +10,13 @@ const commentSchema = new Schema({
   taskId: { type: mongoose.Types.ObjectId, required: true, ref: 'Task' },
   userId: { type: mongoose.Types.ObjectId },
   mentions: [{ type: String }],
-  parentId: { type: String }
+  parentId: { type: String },
+  files: [{
+    name: { type: String }, 
+    url: { type: String },
+    width: { type: Number},
+    height: { type: Number }
+  }],
 });
 
 const actionSchema = new Schema({

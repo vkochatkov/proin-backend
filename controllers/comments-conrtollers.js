@@ -6,6 +6,7 @@ const Project = require('../models/project');
 const User = require('../models/user');
 const logger = require('../services/logger');
 const mailer = require('../nodemailer');
+const { deleteFile, uploadFiles } = require('../services/s3');
 
 require('dotenv').config();
 
@@ -28,9 +29,28 @@ const findProject = async (projectId) => {
 
 const createProjectComment = async (req, res, next) => {
   const projectId = req.params.pid;
-  const { id, text, timestamp, name, userId, mentions, parentId } = req.body;
+  const { id,
+    text,
+    timestamp,
+    name,
+    userId,
+    mentions,
+    parentId,
+    files
+   } = req.body;
   
   const project = await findProject(projectId);
+
+  let uploadedFiles;
+  if (files && files.length > 0) {
+    try {
+      uploadedFiles = await uploadFiles(files, projectId);
+    } catch (e) {
+      logger.error(`PATCH. updateProjectComments/  Error finding project: ${e.message}`);
+      const error = new HttpError('Something went wrong, could not update comment.', 500);
+      return next(error);
+    }
+  }
 
   const comment = new Comment({
     id,
@@ -39,7 +59,8 @@ const createProjectComment = async (req, res, next) => {
     name,
     projectId,
     userId,
-    parentId
+    parentId,
+    files: uploadedFiles
   })
 
   try {
@@ -69,7 +90,7 @@ const createProjectComment = async (req, res, next) => {
 
 const updateProjectComments = async(req, res, next) => {
   const projectId = req.params.pid;
-  const { id, text, timestamp, name } = req.body;
+  const { id, text, timestamp, name, files } = req.body;
 
   let project;
   try {
@@ -91,6 +112,17 @@ const updateProjectComments = async(req, res, next) => {
   comment.text = text;
   comment.timestamp = timestamp;
   comment.name = name;
+
+  if (files && files.length > 0) {
+    try {
+      const uploadedFiles = await uploadFiles(files, projectId);
+      comment.files = comment.files.concat(uploadedFiles.filter(file => file !== undefined));
+    } catch (e) {
+      logger.error(`PATCH. updateProjectComments/  Error finding project: ${e.message}`);
+      const error = new HttpError('Something went wrong, could not update comment.', 500);
+      return next(error);
+    }
+  }
 
   try {
     await comment.save();
