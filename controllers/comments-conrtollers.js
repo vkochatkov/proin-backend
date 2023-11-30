@@ -152,6 +152,10 @@ const deleteComment = async(req, res, next) => {
       return next(error);
     }
 
+    for (const file of comment.files) {
+      await deleteFile(file.url);
+    }
+    
     const deletedComment = await Comment.findOneAndDelete({ id });
 
     if (!deletedComment) {
