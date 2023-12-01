@@ -297,6 +297,12 @@ const deleteTransaction = async (req, res, next) => {
   }
 
   try {
+    for (comment of transaction.comments) {
+      for (file of comment.files) {
+        await deleteFile(file.url);
+      }
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -439,8 +445,10 @@ const createComment = async (req, res, next) => {
     mentions, 
     timestamp, 
     name, 
-    parentId 
+    parentId,
+    files
   } } = req.body;
+  const path = `transactions/${transactionId}`
 
   try {
     // Find the transaction based on the transactionId
@@ -451,6 +459,12 @@ const createComment = async (req, res, next) => {
       return next(error);
     }
 
+    let uploadedFiles;
+    
+    if (files && files.length > 0) {
+      uploadedFiles = await uploadFiles(files, path);
+    }
+
     // Create a new comment
     const comment = {
       text,
@@ -459,7 +473,8 @@ const createComment = async (req, res, next) => {
       userId,
       mentions,
       name,
-      parentId
+      parentId,
+      files: uploadedFiles
     };
 
     // Add the comment to the transaction
@@ -501,6 +516,10 @@ const deleteComment = async (req, res, next) => {
     if (commentIndex === -1) {
       const error = new HttpError('Comment not found.', 404);
       return next(error);
+    }
+
+    for (const file of transaction.comments[commentIndex].files) {
+      await deleteFile(file.url);
     }
 
     // Remove the comment from the transaction
