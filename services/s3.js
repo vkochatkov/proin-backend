@@ -16,7 +16,7 @@ const client = new S3Client({ region, credentials:{
   secretAccessKey,
 }});
 
-const uploadFile = async (dataBase64, projectId, filename) => {
+const uploadFile = async (dataBase64, pathQuery, filename) => {
   try {
     const fileExtension = filename.split('.').pop().toLowerCase();
     const contentType = mime.lookup(fileExtension);
@@ -26,7 +26,7 @@ const uploadFile = async (dataBase64, projectId, filename) => {
     }
 
     const buff = Buffer.from(dataBase64.replace(/^data:[^;]+;base64,/, ""), 'base64');
-    const path = `files/${projectId}/${filename}`;
+    const path = `files/${pathQuery}/${filename}`;
 
     // Compress the image using sharp
     let compressedBuff;
@@ -72,11 +72,11 @@ const uploadFile = async (dataBase64, projectId, filename) => {
   }
 }
 
-const uploadFiles = async (files, projectId) => {
+const uploadFiles = async (files, path) => {
   return await Promise.all(files.map(async (file) => {
     const { isUploaded, url } = await uploadFile(
       file.dataUrl, 
-      projectId, 
+      path, 
       file.name
     );
 

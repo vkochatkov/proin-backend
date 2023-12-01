@@ -411,8 +411,10 @@ const createComment = async (req, res, next) => {
     mentions, 
     timestamp, 
     name, 
-    parentId 
+    parentId,
+    files
   } } = req.body;
+  const path = `tasks/${taskId}`
 
   let task;
   try {
@@ -428,6 +430,11 @@ const createComment = async (req, res, next) => {
     return next(error);
   }
 
+  let uploadedFiles;
+  if (files && files.length > 0) {
+    uploadedFiles = await uploadFiles(files, path);
+  }
+
   const comment = {
     text,
     timestamp,
@@ -435,7 +442,8 @@ const createComment = async (req, res, next) => {
     userId,
     mentions,
     name,
-    parentId
+    parentId,
+    files: uploadedFiles
   };
 
   task.comments.unshift(comment);
@@ -491,12 +499,17 @@ const deleteComment = async (req, res, next) => {
     return next(error);
   }
 
-  const commentIndex = task.comments.findIndex((comment) => comment._id.toString() === cid);
+  const commentIndex = task.comments
+    .findIndex((comment) => comment._id.toString() === cid);
   const oldComment = task.comments.find(comment => comment._id.toString() === cid);
 
   if (commentIndex === -1) {
     const error = new HttpError('Comment not found.', 404);
     return next(error);
+  }
+
+  for (const file of oldComment.files) {
+    await deleteFile(file.url);
   }
 
   task.comments.splice(commentIndex, 1);
