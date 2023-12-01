@@ -2,6 +2,7 @@ const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/cl
 const mime = require('mime-types');
 const logger = require('./logger');
 const sharp = require('sharp'); 
+const uuid = require('uuid/v1');
 
 require('dotenv').config();
 
@@ -77,7 +78,7 @@ const uploadFiles = async (files, path) => {
     const { isUploaded, url } = await uploadFile(
       file.dataUrl, 
       path, 
-      file.name
+      `${uuid()}_${file.name}`
     );
 
     if (isUploaded) {
