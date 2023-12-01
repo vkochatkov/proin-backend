@@ -90,6 +90,12 @@ const deleteTask = async (req, res, next) => {
   }
 
   try {
+    for (comment of task.comments) {
+      for (file of comment.files) {
+        await deleteFile(file.url);
+      }
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
