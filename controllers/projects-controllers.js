@@ -386,6 +386,31 @@ const deleteProject = async (req, res, next) => {
       await deleteFile(file.url);
     }
 
+    // Delete files in comments within transactions
+    for (const transaction of project.transactions) {
+      for (const comment of transaction.comments) {
+        for (const file of comment.files) {
+          await deleteFile(file.url);
+        }
+      }
+    }
+
+    // Remove all comments' files within tasks
+    for (const task of project.tasks) {
+      for (const comment of task.comments) {
+        for (const file of comment.files) {
+          await deleteFile(file.url);
+        }
+      }
+    }
+
+    // Remove all comments' files within project comments
+    for (const comment of project.comments) {
+      for (const file of comment.files) {
+        await deleteFile(file.url);
+      }
+    }
+
     const logoUrl = project.logoUrl;
 
     if (logoUrl) {
