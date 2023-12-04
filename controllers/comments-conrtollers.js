@@ -113,10 +113,14 @@ const updateProjectComments = async(req, res, next) => {
   comment.timestamp = timestamp;
   comment.name = name;
 
-  if (files && files.length > 0) {
+  if (files && files.length > 0 && files.length !== comment.files.length) {
     try {
-      const uploadedFiles = await uploadFiles(files, projectId);
-      comment.files = comment.files.concat(uploadedFiles.filter(file => file !== undefined));
+      const addedFiles = files.filter(file => !file._id);
+
+      if (addedFiles.length > 0) {
+        const uploadedFiles = await uploadFiles(addedFiles, projectId);
+        comment.files = comment.files.concat(uploadedFiles.filter(file => file !== undefined));
+      }
     } catch (e) {
       logger.error(`PATCH. updateProjectComments/  Error finding project: ${e.message}`);
       const error = new HttpError('Something went wrong, could not update comment.', 500);
