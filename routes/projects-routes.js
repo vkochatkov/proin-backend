@@ -14,6 +14,8 @@ router.get('/all/:uid', projectControllers.getAllProjectsByUserId);
 
 router.put('/user/:uid', projectControllers.updateProjectsByUserId);
 
+router.put('/user-order/:uid', projectControllers.changeUserProjectsOrder);
+
 router.use(checkAuth);
 
 router.post(

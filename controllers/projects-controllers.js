@@ -83,6 +83,11 @@ const getProjectById = async (req, res, next) => {
 
 const getUsersProjects = async (req, res, next) => {
   const userId = req.params.uid;
+  const page = parseInt(req.query.page) || 1; 
+  const limit = parseInt(req.query.limit) || 10;
+
+  const startIndex = (page - 1) * limit;
+  const endIndex = page * limit;
 
   let projects;
   try {
@@ -143,8 +148,10 @@ const getUsersProjects = async (req, res, next) => {
     return next(error);
   }
 
+  const paginatedProjects = projects.slice(startIndex, endIndex);
+
   res.json({
-    projects: projects.map(project =>
+    projects: paginatedProjects.map(project =>
       project.toObject({ getters: true })
     )
   });
@@ -192,6 +199,43 @@ const updateProjectsByUserId = async (req, res, next) => {
       500
     );
     return next(error);
+  }
+}
+
+const changeUserProjectsOrder = async (req, res) => {
+  const { id, newIndex } = req.body;
+  const userId = req.params.uid;
+
+  try {
+    if (newIndex !== undefined) {
+      const user = await User.findById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      if (newIndex >= 0 && newIndex < user.projects.length) {
+
+        const removedProjectId = user.projects
+          .filter(project => project.toString() === id)[0];
+        const oldIndex = user.projects
+          .findIndex(projectId => projectId === removedProjectId); 
+          
+        user.projects.splice(oldIndex, 1)  // Remove and store the element
+        user.projects.splice(newIndex + 1, 0, removedProjectId); // Insert the removed element at the new position
+
+        await user.save();
+  
+        return res.status(200).json({ message: 'Project order updated successfully' });
+      } else {
+        return res.status(400).json({ message: 'Invalid indexes provided' });
+      }
+    } else {
+      return res.status(400).json({ message: 'Invalid indexes provided' });
+    }
+  } catch (error) {
+    // Handle errors
+    res.status(500).json({ message: 'Failed to update project order', error: error.message });
   }
 }
 
@@ -816,6 +860,7 @@ exports.getProjectById = getProjectById;
 exports.getUsersProjects = getUsersProjects;
 exports.getAllProjectsByUserId = getAllProjectsByUserId;
 exports.updateProjectsByUserId = updateProjectsByUserId;
+exports.changeUserProjectsOrder = changeUserProjectsOrder;
 exports.createProject = createProject;
 exports.updateProject = updateProject;
 exports.deleteProject = deleteProject;
